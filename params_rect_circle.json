@@ -1,0 +1,1 @@
+{"name": "rect_circle", "test_name": "rect_circle", "precomputed": true, "l1": 1, "l2": 1, "n_samples": 10000, "seed": 0, "datatype": "rect_circle", "sigma": 1, "n_comps": 100, "n_eigenvectors": 100, "K": 2, "dist_thresh": 0.17}

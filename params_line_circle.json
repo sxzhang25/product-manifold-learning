@@ -1,0 +1,1 @@
+{"name": "line_circle", "test_name": "line_circle", "precomputed": true, "l1": 2, "l2": 1, "n_samples": 10000, "seed": 0, "datatype": "line_circle", "sigma": 1, "n_comps": 100, "n_eigenvectors": 100, "K": 3, "dist_thresh": 0.18}
