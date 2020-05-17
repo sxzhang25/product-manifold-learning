@@ -9,3 +9,8 @@ example_params.json: example of a json file for toggling inputs to the algorithm
 generate_data.py: generates randomly sampled data from a selection of toy manifolds, and runs the algorithm to output two separate manifolds of eigenvectors
 
 generate_plots.py: generates plots from the results created by generate_data.py
+
+## todo
+( ) Check sum of eigenvalues during triplet checking
+
+( ) Adjust scaling to sum of squares = 1
