@@ -11,6 +11,6 @@ generate_data.py: generates randomly sampled data from a selection of toy manifo
 generate_plots.py: generates plots from the results created by generate_data.py
 
 ## todo
-( ) Check sum of eigenvalues during triplet checking
+(  ) Check sum of eigenvalues during triplet checking
 
-( ) Adjust scaling to sum of squares = 1
+(  ) Adjust scaling to sum of squares = 1
