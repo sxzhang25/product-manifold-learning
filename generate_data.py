@@ -156,34 +156,38 @@ def calculate_score(data, v1, v2):
   score = np.linalg.norm((vs1 - vs2), ord=1) / vs1.shape[0]
   return score
 
-def find_match(data, v, candidates):
+def find_match(data, v, a, candidates, Sigma, eps=10e-3):
   '''
   finds the best match to v out of candidates, according to score
   returns the best match and its distance from v
 
+  v: the eigenvector (product of two base vectors) to match
+  a: the eigenvalue to match (sum of two base eigenvalues)
   candidates: an array of vectors (vertically concatenated)
+  Sigma: the eigenvalues of the data
   '''
 
   best_match = 0
   best_dist = np.inf
   for i in range(candidates.shape[1]):
-    u = candidates[:,i]
+    if abs(a - Sigma[i]) < eps:
+      u = candidates[:,i]
 
-    # test with positive
-    d = calculate_score(data, v, u)
-    if d < best_dist:
-      best_match = i
-      best_dist = d
+      # test with positive
+      d = calculate_score(data, v, u)
+      if d < best_dist:
+        best_match = i
+        best_dist = d
 
-    # test with negative
-    d = calculate_score(data, v, -u)
-    if d < best_dist:
-      best_match = i
-      best_dist = d
+      # test with negative
+      d = calculate_score(data, v, -u)
+      if d < best_dist:
+        best_match = i
+        best_dist = d
 
   return best_match, best_dist
 
-def find_matches(data, phi, n_eigenvectors=100):
+def find_matches(data, phi, Sigma, n_eigenvectors=100):
   '''
   find all best triplets in the first n eigenvectors of the data
   (excluding 0 eigenvector)
@@ -197,7 +201,7 @@ def find_matches(data, phi, n_eigenvectors=100):
       v1 = phi[:,i]
       v2 = phi[:,j]
       v = v1 * v2
-      match, dist = find_match(data, v, phi[:,j+1:])
+      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[:,j+1])
       matches[i-1,j-1] = match + j + 1
       matches[j-1,i-1] = match + j + 1
       dists[i-1,j-1] = dist
@@ -350,7 +354,7 @@ def main():
 
     # find triplets
     print("\nComputing triplets...")
-    matches, dists = find_matches(data, phi, n_eigenvectors)
+    matches, dists = find_matches(data, phi, Sigma, n_eigenvectors)
 
     np.savetxt(matches_filename, matches)
     np.savetxt(dists_filename, dists)
