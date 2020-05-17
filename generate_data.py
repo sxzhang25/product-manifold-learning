@@ -121,12 +121,13 @@ def calc_vars(data, W, n_comps=100):
                                 n_components=n_comps+1,
                                 n_iter=5,
                                 random_state=None)
+
   t1 = time.perf_counter()
   print("  Calculating svd took %2.2f seconds" % (t1-t0))
 
   # calculate phi, psi
   phi = D_sqrt_inv @ V
-  psi = D_sqrt @ V
+  Sigma = 1 - Sigma
 
   return phi, Sigma
 
@@ -156,7 +157,7 @@ def calculate_score(data, v1, v2):
   score = np.linalg.norm((vs1 - vs2), ord=1) / vs1.shape[0]
   return score
 
-def find_match(data, v, a, candidates, Sigma, eps=10e-3):
+def find_match(data, v, a, candidates, Sigma, eps=0.5):
   '''
   finds the best match to v out of candidates, according to score
   returns the best match and its distance from v
@@ -170,7 +171,7 @@ def find_match(data, v, a, candidates, Sigma, eps=10e-3):
   best_match = 0
   best_dist = np.inf
   for i in range(candidates.shape[1]):
-    if abs(a - Sigma[i]) < eps:
+    if abs(a - Sigma[i]) / a < eps:
       u = candidates[:,i]
 
       # test with positive
@@ -201,7 +202,8 @@ def find_matches(data, phi, Sigma, n_eigenvectors=100):
       v1 = phi[:,i]
       v2 = phi[:,j]
       v = v1 * v2
-      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[:,j+1])
+      a = Sigma[i] + Sigma[j]
+      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[j+1:])
       matches[i-1,j-1] = match + j + 1
       matches[j-1,i-1] = match + j + 1
       dists[i-1,j-1] = dist
@@ -236,7 +238,7 @@ def find_best_matches(phi, matches, dists, dist_thresh):
 ###
 # VOTING SCHEME
 ###
-def vote(edge_scores, triplet, dist):
+def vote(edge_scores, votes, triplet, dist):
   '''
   the scoring for scheme 3 is as follows:
   when encountering a new triplet (t1, t2, t3):
@@ -251,9 +253,9 @@ def vote(edge_scores, triplet, dist):
   t1, t2, t3 = [int(i) for i in triplet]
   edge_scores[t1][t2] += np.exp(dist)
   edge_scores[t2][t1] += np.exp(dist)
-  edge_scores[t1][t1] += 1
-  edge_scores[t2][t2] += 1
-  edge_scores[t3][t3] -= 1
+  votes[t1] += 1
+  votes[t2] += 1
+  votes[t3] -= 1
 
 def get_votes(best_matches, best_dists, n_eigenvectors, K):
   '''
@@ -264,13 +266,14 @@ def get_votes(best_matches, best_dists, n_eigenvectors, K):
   '''
 
   scores = np.zeros((n_eigenvectors, n_eigenvectors))
+  votes = np.zeros(n_eigenvectors, dtype='int')
   for triplet, dist in zip(best_matches, best_dists):
     if (triplet[0] < n_eigenvectors and
       triplet[1] < n_eigenvectors and
       triplet[2] < n_eigenvectors):
-      vote(scores, triplet, dist)
+      vote(scores, votes, triplet, dist)
 
-  edges = np.where(np.diag(scores>K))[0]
+  edges = np.where(votes>K)[0]
   edge_scores = np.zeros((len(edges), len(edges)))
   for i in range(edge_scores.shape[0]):
     for j in range(edge_scores.shape[1]):
@@ -285,7 +288,6 @@ def split_eigenvectors(edges, edge_scores):
   '''
   clusters eigenvectors into two separate groups
   '''
-
   clustering = SpectralClustering(n_clusters=2,  # default: 2
                                   affinity='precomputed',
                                   assign_labels='kmeans',
@@ -320,11 +322,11 @@ def main():
   dist_thresh = params['dist_thresh']
 
   # filenames
-  data_filename = '../data/data_' + name + '.dat'  # switch to path containing data
-  phi_filename = '../data/phi_' + name + '.dat'
-  Sigma_filename = '../data/Sigma_' + name + '.dat'
-  matches_filename = '../data/matches_' + name + '.dat'
-  dists_filename = '../data/dists_' + name + '.dat'
+  data_filename = './data/data_' + name + '.dat'  # switch to path containing data
+  phi_filename = './data/phi_' + name + '.dat'
+  Sigma_filename = './data/Sigma_' + name + '.dat'
+  matches_filename = './data/matches_' + name + '.dat'
+  dists_filename = './data/dists_' + name + '.dat'
 
   if precomputed:
     # load data
@@ -335,9 +337,9 @@ def main():
     phi = np.loadtxt(phi_filename)
     Sigma = np.loadtxt(Sigma_filename)
 
-    print("\nLoading matches and distances...")
-    matches = np.loadtxt(matches_filename)
-    dists = np.loadtxt(dists_filename)
+    # print("\nLoading matches and distances...")
+    # matches = np.loadtxt(matches_filename)
+    # dists = np.loadtxt(dists_filename)
   else:
     # generate random data
     print("\nGenerating random data...")
@@ -358,6 +360,15 @@ def main():
 
     np.savetxt(matches_filename, matches)
     np.savetxt(dists_filename, dists)
+
+  print(Sigma)
+
+  # find triplets
+  print("\nComputing triplets...")
+  matches, dists = find_matches(data, phi, Sigma, n_eigenvectors)
+
+  np.savetxt(matches_filename, matches)
+  np.savetxt(dists_filename, dists)
 
   # find best matches
   print("\nFinding best matches...")
@@ -391,8 +402,8 @@ def main():
   print("Manifold #1: ", manifold1)
   print("Manifold #2: ", manifold2)
 
-  np.savetxt('manifold1_{}.dat'.format(test_name), manifold1)
-  np.savetxt('manifold2_{}.dat'.format(test_name), manifold2)
+  np.savetxt('./data/manifold1_{}.dat'.format(test_name), manifold1)
+  np.savetxt('./data/manifold2_{}.dat'.format(test_name), manifold2)
 
 
 if __name__ == '__main__':
