@@ -1,6 +1,6 @@
 data/
 drafts/
 images/
-notebooks/
 
+*.ipynb
 params*
