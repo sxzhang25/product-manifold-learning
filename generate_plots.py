@@ -193,11 +193,11 @@ def main():
 
   if not precomputed:
     # plot original data
-    plot_og_data(data, title='Original Data ({})'.format(name), filename='original_data.png')
+    plot_og_data(data, title='Original Data ({})'.format(name), filename='./images/original_data.png')
 
     # plot eigenvectors
     vecs = [phi[:,i] for i in range(1, n_eigenvectors+1)]
-    eigenvectors_filename = name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
+    eigenvectors_filename = './images/' + name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
     plot_eigenvectors(data,
                       vecs[:100],
                       labels=[int(i) for i in range(1,n_eigenvectors+1)],
