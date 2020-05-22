@@ -1,6 +1,7 @@
 data/
 drafts/
 images/
+__pycache__
 
 *.ipynb
 params*
