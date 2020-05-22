@@ -28,18 +28,18 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
 
   if datatype=='line_line':
     # two line segments
-    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
-    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
+    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
+    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
     data = np.column_stack((line1_data, line2_data))
     data = np.row_stack(([l1, l2], data))
 
   elif datatype=='line_circle':
     # line segment and circle
-    line_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
+    line_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
     circle_data = np.empty((n_samples,2))
     for i in range(n_samples):
       theta = 2 * np.pi * np.random.rand()
-      circle_data[i,:] = [(l2 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l2 * np.sin(theta)]
+      circle_data[i,:] = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((line_data, circle_data))
     data = np.row_stack(([l1, l2, 0], data))
 
@@ -49,16 +49,16 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
     circleB_data = np.empty((n_samples,2))
     for i in range(n_samples):
       theta = 2 * np.pi * np.random.rand()
-      circleA_data[i,:] = [(l1 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l1 * np.sin(theta)]
+      circleA_data[i,:] = [(l1 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l1 * np.sin(theta)]
       theta = 2 * np.pi * np.random.rand()
-      circleB_data[i,:] = [(l2 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l2 * np.sin(theta)]
+      circleB_data[i,:] = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((circleA_data, circleB_data))
     data = np.row_stack(([l1, l2, 0, 0], data))
 
   elif datatype=='rect_circle':
     # rectangle and circle
-    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
-    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
+    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
+    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
     rect_data = np.column_stack((line1_data, line2_data))
 
     circle_data = np.empty((n_samples,2))
@@ -394,8 +394,8 @@ def main():
   print("Manifold #1: ", manifold1)
   print("Manifold #2: ", manifold2)
 
-  np.savetxt('./data/manifold1_{}.dat'.format(test_name), manifold1)
-  np.savetxt('./data/manifold2_{}.dat'.format(test_name), manifold2)
+  np.savetxt('./data/manifold1_{}_{}.dat'.format(name, test_name), manifold1)
+  np.savetxt('./data/manifold2_{}_{}.dat'.format(name, test_name), manifold2)
 
 
 if __name__ == '__main__':

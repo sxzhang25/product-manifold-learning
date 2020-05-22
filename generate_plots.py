@@ -193,11 +193,11 @@ def main():
 
   if not precomputed:
     # plot original data
-    plot_og_data(data, title='Original Data ({})'.format(name), filename='./images/original_data.png')
+    plot_og_data(data, title='Original Data ({})'.format(name), filename='./images/{}_{}_original_data.png'.format(name, test_name))
 
     # plot eigenvectors
     vecs = [phi[:,i] for i in range(1, n_eigenvectors+1)]
-    eigenvectors_filename = './images/' + name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
+    eigenvectors_filename = './images/' + name + '_' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
     plot_eigenvectors(data,
                       vecs[:100],
                       labels=[int(i) for i in range(1,n_eigenvectors+1)],
@@ -205,8 +205,8 @@ def main():
                       filename=eigenvectors_filename)
 
   # plot best matches
-  manifold1 = np.loadtxt('./data/manifold1_{}.dat'.format(test_name))
-  manifold2 = np.loadtxt('./data/manifold2_{}.dat'.format(test_name))
+  manifold1 = np.loadtxt('./data/manifold1_{}_{}.dat'.format(name, test_name))
+  manifold2 = np.loadtxt('./data/manifold2_{}_{}.dat'.format(name, test_name))
 
   vecs1 = [phi[:,int(i)] for i in manifold1]
   vecs2 = [phi[:,int(i)] for i in manifold2]
@@ -214,18 +214,18 @@ def main():
   plot_eigenvectors(data,
                     vecs1,
                     labels=[int(i) for i in manifold1],
-                    filename='./images/manifold1_{}.png'.format(test_name))
+                    filename='./images/manifold1_{}_{}.png'.format(name, test_name))
 
   plot_eigenvectors(data,
                     vecs2,
                     labels=[int(i) for i in manifold2],
-                    filename='./images/manifold2_{}.png'.format(test_name))
+                    filename='./images/manifold2_{}_{}.png'.format(name, test_name))
 
   plot_independent_eigenvectors(manifold1,
                                 manifold2,
                                 n_eigenvectors,
                                 title='d={}'.format(dist_thresh),
-                                filename='./images/{}_{}_{}_eigenvector_division.png'.format(test_name, K, dist_thresh))
+                                filename='./images/{}_{}_{}_{}_eigenvector_division.png'.format(name, test_name, K, dist_thresh))
 
 if __name__ == '__main__':
   main()
