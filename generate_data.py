@@ -13,7 +13,7 @@ from sklearn.cluster import SpectralClustering
 # GENERATE RANDOM DATA
 ###
 
-def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line'):
+def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0.05):
   '''
   generates uniform random data
 
@@ -28,18 +28,18 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line'):
 
   if datatype=='line_line':
     # two line segments
-    line1_data = l1 * np.random.rand(n_samples)
-    line2_data = l2 * np.random.rand(n_samples)
+    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
+    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
     data = np.column_stack((line1_data, line2_data))
     data = np.row_stack(([l1, l2], data))
 
   elif datatype=='line_circle':
     # line segment and circle
-    line_data = l1 * np.random.rand(n_samples)
+    line_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
     circle_data = np.empty((n_samples,2))
     for i in range(n_samples):
       theta = 2 * np.pi * np.random.rand()
-      circle_data[i,:] = [l2 * np.cos(theta), l2 * np.sin(theta)]
+      circle_data[i,:] = [(l2 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((line_data, circle_data))
     data = np.row_stack(([l1, l2, 0], data))
 
@@ -49,22 +49,22 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line'):
     circleB_data = np.empty((n_samples,2))
     for i in range(n_samples):
       theta = 2 * np.pi * np.random.rand()
-      circleA_data[i,:] = [l1 * np.cos(theta), l1 * np.sin(theta)]
+      circleA_data[i,:] = [(l1 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l1 * np.sin(theta)]
       theta = 2 * np.pi * np.random.rand()
-      circleB_data[i,:] = [l2 * np.cos(theta), l2 * np.sin(theta)]
+      circleB_data[i,:] = [(l2 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((circleA_data, circleB_data))
     data = np.row_stack(([l1, l2, 0, 0], data))
 
   elif datatype=='rect_circle':
     # rectangle and circle
-    line1_data = l1 * np.random.rand(n_samples)
-    line2_data = l2 * np.random.rand(n_samples)
+    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
+    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand() - 1))
     rect_data = np.column_stack((line1_data, line2_data))
 
     circle_data = np.empty((n_samples,2))
     for i in range(n_samples):
       theta = 2 * np.pi * np.random.rand()
-      circle_data[i,:] = [l1 * np.cos(theta), l1 * np.sin(theta)]
+      circle_data[i,:] = [(l1 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l1 * np.sin(theta)]
     data = np.column_stack((rect_data, circle_data))
     data = np.row_stack(([l1, l2, 0, 0], data))
 
@@ -127,7 +127,7 @@ def calc_vars(data, W, n_comps=100):
 
   # calculate phi, psi
   phi = D_sqrt_inv @ V
-  Sigma = 1 - Sigma
+  # Sigma = 1 - Sigma
 
   return phi, Sigma
 
@@ -157,7 +157,7 @@ def calculate_score(data, v1, v2):
   score = np.linalg.norm((vs1 - vs2), ord=1) / vs1.shape[0]
   return score
 
-def find_match(data, v, a, candidates, Sigma, eps=0.5):
+def find_match(data, v, a, candidates, Sigma, eps=1.5):
   '''
   finds the best match to v out of candidates, according to score
   returns the best match and its distance from v
@@ -312,6 +312,7 @@ def main():
   precomputed = params['precomputed']
   l1 = np.sqrt(np.pi) + params['l1']
   l2 = params['l2']
+  noise = params['noise']
   n_samples = params['n_samples']
   seed = params['seed']
   datatype = params['datatype']
@@ -337,13 +338,13 @@ def main():
     phi = np.loadtxt(phi_filename)
     Sigma = np.loadtxt(Sigma_filename)
 
-    # print("\nLoading matches and distances...")
-    # matches = np.loadtxt(matches_filename)
-    # dists = np.loadtxt(dists_filename)
+    print("\nLoading matches and distances...")
+    matches = np.loadtxt(matches_filename)
+    dists = np.loadtxt(dists_filename)
   else:
     # generate random data
     print("\nGenerating random data...")
-    data = generate_data(l1, l2, n_samples=n_samples, seed=seed, datatype=datatype)
+    data = generate_data(l1, l2, noise=noise, n_samples=n_samples, seed=seed, datatype=datatype)
     np.savetxt(data_filename, data)
 
     # compute eigenvectors
@@ -360,15 +361,6 @@ def main():
 
     np.savetxt(matches_filename, matches)
     np.savetxt(dists_filename, dists)
-
-  print(Sigma)
-
-  # find triplets
-  print("\nComputing triplets...")
-  matches, dists = find_matches(data, phi, Sigma, n_eigenvectors)
-
-  np.savetxt(matches_filename, matches)
-  np.savetxt(dists_filename, dists)
 
   # find best matches
   print("\nFinding best matches...")
