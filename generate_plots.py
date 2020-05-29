@@ -48,7 +48,7 @@ def plot_eigenvector(data, v, scaled=False, title=None, filename=None):
   vs = scale(v, [0,1]) if scaled else v
   fig = plt.figure()
   ax = fig.add_subplot(111)
-  g = ax.scatter(data[:,0], data[:,1], marker="s", c=vs[1:])
+  g = ax.scatter(data[:,0], data[:,1], marker="s", c=vs)
   ax.set_aspect('equal', 'datalim')
   cb = plt.colorbar(g)
   if title:
@@ -63,7 +63,6 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
 
   eigenvectors: a list of eigenvectors
   '''
-
   rows = int(np.ceil(len(eigenvectors)**0.5))
   cols = rows
   if data.shape[1] <= 2:
@@ -76,7 +75,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
           ax.set_visible(False)
         else:
           v = eigenvectors[r * cols + c]
-          g = ax.scatter(data[:,0], data[:,1], marker="s", c=v[1:])
+          g = ax.scatter(data[:,0], data[:,1], marker="s", c=v)
           fig.colorbar(g, ax=ax)
           ax.set_aspect('equal', 'datalim')
           if labels is not None:
@@ -91,7 +90,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
           ax.set_visible(False)
         else:
           v = eigenvectors[r * cols + c]
-          g = ax.scatter(data[:,0], data[:,1], data[:,2], marker="s", c=v[1:])
+          g = ax.scatter(data[:,0], data[:,1], data[:,2], marker="s", c=v)
           fig.colorbar(g, ax=ax)
           if labels is not None:
             ax.set_title(labels[index])

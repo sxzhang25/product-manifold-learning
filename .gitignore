@@ -1,6 +1,7 @@
 data/
 drafts/
 images/
+papers/
 __pycache__
 
 *.ipynb

@@ -346,6 +346,7 @@ def main():
     print("\nGenerating random data...")
     data = generate_data(l1, l2, noise=noise, n_samples=n_samples, seed=seed, datatype=datatype)
     np.savetxt(data_filename, data)
+    data = data[1:,:]
 
     # compute eigenvectors
     print("\nComputing eigenvectors...")
