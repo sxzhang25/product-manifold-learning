@@ -84,12 +84,17 @@ def calc_W(data, sigma=None):
   calculates the weight matrix W
   '''
 
-  if sigma is None:
-    sigma = 1
-
   t0 = time.perf_counter()
   pairwise_sq_dists = squareform(pdist(data, 'sqeuclidean'))
-  W = np.exp(-pairwise_sq_dists / 2*sigma)
+
+  if sigma is None:
+    sigma = 0
+    for i in range(data.shape[0]):
+      sigma += np.min(np.delete(pairwise_sq_dists[i,:], i))
+    sigma /= data.shape[0]
+    # sigma = 1
+
+  W = np.exp(-pairwise_sq_dists / sigma)
   t1 = time.perf_counter()
   print("  Calculating W took %2.2f seconds" % (t1-t0))
 
@@ -99,18 +104,49 @@ def calc_vars(data, W, n_comps=100):
   '''
   calculates phi, psi, and Sigma
   '''
+  # ones = np.ones(W.shape[0])
+  # p = W @ ones
+  # W2 = W / np.outer(p, p)
+  # v = np.sqrt(W2 @ ones)
+  # S = W2 / np.outer(v, v)
+  #
+  # V, Sigma, VT = randomized_svd(S,
+  #                               n_components=n_comps+1,
+  #                               n_iter=5,
+  #                               random_state=None)
+  # phi = V / V[:,0][None].T
 
-  # calculate D, M, S
+  # ones = np.ones(W.shape[0])
+  # v = np.sqrt(W @ ones)
+  # S = W / np.outer(v, v)
+  #
+  # V, Sigma, VT = randomized_svd(S,
+  #                               n_components=n_comps+1,
+  #                               n_iter=5,
+  #                               random_state=None)
+  # phi = V / V[:,0][None].T
+
+
+  # calculate D, M, S (use coifmann-lafon diffusion map)
   t0 = time.perf_counter()
-  D = np.zeros(data.shape[0])
-  for i in range(D.shape[0]):
-    D[i] = np.sum(W[i,:])
-  D_ = np.diag(D)
+  d = np.zeros(data.shape[0])
+  for i in range(d.shape[0]):
+    d[i] = np.sum(W[i,:])
+  D = np.diag(d)
+  Dinv = scipy.linalg.inv(D)
+
+  # double-normalize W and recompute degree matrix
+  W_ = Dinv @ W @ Dinv
+  d = np.zeros(data.shape[0])
+  for i in range(d.shape[0]):
+    d[i] = np.sum(W_[i,:])
+  D_ = np.diag(d)
   D_inv = scipy.linalg.inv(D_)
   D_sqrt = np.sqrt(D_)
   D_sqrt_inv = scipy.linalg.inv(D_sqrt)
 
-  M = D_inv @ W
+  # compute eigenvectors using SVD of symmetric matrix S = D^-1 M D^-1
+  M = D_inv @ W_
   S = D_sqrt @ M @ D_sqrt_inv
   t1 = time.perf_counter()
   print("  Calculating variables took %2.2f seconds" % (t1-t0))
@@ -122,12 +158,14 @@ def calc_vars(data, W, n_comps=100):
                                 n_iter=5,
                                 random_state=None)
 
-  t1 = time.perf_counter()
-  print("  Calculating svd took %2.2f seconds" % (t1-t0))
-
-  # calculate phi, psi
   phi = D_sqrt_inv @ V
-  # Sigma = 1 - Sigma
+  t1 = time.perf_counter()
+  print("  Calculating eigenvectors took %2.2f seconds" % (t1-t0))
+
+  # compute approximate eigenvalues of Laplacian
+  L = D - W
+  for i in range(phi.shape[1]):
+    Sigma[i] = np.abs(np.average((L @ phi[:,i]) / phi[:,i]))
 
   return phi, Sigma
 
@@ -157,7 +195,7 @@ def calculate_score(data, v1, v2):
   score = np.linalg.norm((vs1 - vs2), ord=1) / vs1.shape[0]
   return score
 
-def find_match(data, v, a, candidates, Sigma, eps=1.5):
+def find_match(data, v, a, candidates, Sigma, eps=10e-1):
   '''
   finds the best match to v out of candidates, according to score
   returns the best match and its distance from v
@@ -188,49 +226,65 @@ def find_match(data, v, a, candidates, Sigma, eps=1.5):
 
   return best_match, best_dist
 
-def find_matches(data, phi, Sigma, n_eigenvectors=100):
-  '''
-  find all best triplets in the first n eigenvectors of the data
-  (excluding 0 eigenvector)
-  '''
+# def find_matches(data, phi, Sigma, n_eigenvectors=100):
+#   '''
+#   find all best triplets in the first n eigenvectors of the data
+#   (excluding 0 eigenvector)
+#   '''
+#
+#   t0 = time.perf_counter()
+#   matches = np.zeros((n_eigenvectors, n_eigenvectors), dtype=int)
+#   dists = np.zeros((n_eigenvectors, n_eigenvectors))
+#   for i in range(1, n_eigenvectors+1):
+#     for j in range(i+1, n_eigenvectors+1):
+#       v1 = phi[:,i]
+#       v2 = phi[:,j]
+#       v = v1 * v2
+#       a = Sigma[i] + Sigma[j]
+#       match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[j+1:])
+#       matches[i-1,j-1] = match + j + 1
+#       matches[j-1,i-1] = match + j + 1
+#       dists[i-1,j-1] = dist
+#       dists[j-1,i-1] = dist
+#
+#   t1 = time.perf_counter()
+#   print("Finding best matches took %2.2f seconds" % (t1-t0))
+#   return matches, dists
+#
+# def find_best_matches(phi, matches, dists, dist_thresh):
+#   '''
+#   returns a list of all matches satisfy the threshold
+#   '''
+#
+#   best_matches = {}
+#   best_dists = {}
+#   for i in range(dists.shape[0]):
+#     for j in range(i+1, dists.shape[0]):
+#       if dists[i,j] < dist_thresh:
+#         v1, v2, match = [i+1, j+1, matches[i,j]]
+#         if match not in best_matches:
+#           best_matches[match] = [v1, v2, match]
+#           best_dists[match] = dists[i,j]
+#         else:
+#           if dists[i,j] < best_dists[match]:
+#             best_matches[match] = [v1, v2, match]
+#             best_dists[match] = dists[i,j]
+#
+#   return best_matches, best_dists
 
-  t0 = time.perf_counter()
-  matches = np.zeros((n_eigenvectors, n_eigenvectors), dtype=int)
-  dists = np.zeros((n_eigenvectors, n_eigenvectors))
+def find_best_matches(data, phi, Sigma, n_eigenvectors=100, eps=10e-2):
+  best_matches = {}
+  best_dists = {}
   for i in range(1, n_eigenvectors+1):
     for j in range(i+1, n_eigenvectors+1):
       v1 = phi[:,i]
       v2 = phi[:,j]
       v = v1 * v2
       a = Sigma[i] + Sigma[j]
-      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[j+1:])
-      matches[i-1,j-1] = match + j + 1
-      matches[j-1,i-1] = match + j + 1
-      dists[i-1,j-1] = dist
-      dists[j-1,i-1] = dist
-
-  t1 = time.perf_counter()
-  print("Finding best matches took %2.2f seconds" % (t1-t0))
-  return matches, dists
-
-def find_best_matches(phi, matches, dists, dist_thresh):
-  '''
-  returns a list of all matches satisfy the threshold
-  '''
-
-  best_matches = {}
-  best_dists = {}
-  for i in range(dists.shape[0]):
-    for j in range(i+1, dists.shape[0]):
-      if dists[i,j] < dist_thresh:
-        v1, v2, match = [i+1, j+1, matches[i,j]]
-        if match not in best_matches:
-          best_matches[match] = [v1, v2, match]
-          best_dists[match] = dists[i,j]
-        else:
-          if dists[i,j] < best_dists[match]:
-            best_matches[match] = [v1, v2, match]
-            best_dists[match] = dists[i,j]
+      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[j+1:], eps=eps)
+      triplet = [i, j, match + j + 1]
+      best_matches[match] = triplet
+      best_dists[match] = dist
 
   return best_matches, best_dists
 
@@ -304,7 +358,7 @@ def main():
     params = json.load(f)
 
   # unpack parameters
-  print('Parameters...')
+  print("\nParameters...")
   print(params)
 
   name = params['name']
@@ -356,31 +410,34 @@ def main():
     np.savetxt(phi_filename, phi)
     np.savetxt(Sigma_filename, Sigma)
 
-    # find triplets
-    print("\nComputing triplets...")
-    matches, dists = find_matches(data, phi, Sigma, n_eigenvectors)
+  # find triplets
+  print("\nComputing triplets...")
+  matches, dists = find_best_matches(data, phi, Sigma, n_eigenvectors)
 
-    np.savetxt(matches_filename, matches)
-    np.savetxt(dists_filename, dists)
+  # np.savetxt(matches_filename, matches)
+  # np.savetxt(dists_filename, dists)
 
-  # find best matches
-  print("\nFinding best matches...")
-  best_matches, best_dists = find_best_matches(phi, matches, dists, dist_thresh)
+  # # find best matches
+  # print("\nFinding best matches...")
+  # best_matches, best_dists = find_best_matches(phi, matches, dists, dist_thresh)
 
-  best_matches_list = []
-  best_dists_list = []
-  for match in list(best_matches):
-    best_matches_list.append(best_matches[match])
-    best_dists_list.append(best_dists[match])
+  print("\nSigma...")
+  print(Sigma)
 
-  dist_order = np.argsort(best_dists_list)
-  best_matches_list = [best_matches_list[i] for i in dist_order]
-  print('\n%d best matches found\n' % (len(best_matches)), best_matches_list)
+  matches_list = []
+  dists_list = []
+  for match in list(matches):
+    matches_list.append(matches[match])
+    dists_list.append(dists[match])
+
+  dist_order = np.argsort(dists_list)
+  ordered_matches = [matches_list[i] for i in dist_order]
+  print('\n%d matches found\n' % (len(ordered_matches)), ordered_matches)
 
   # split eigenvectors
   print("\nSplitting eigenvectors...")
-  eigenvectors, eigenvector_scores = get_votes(best_matches_list,
-                                               best_dists_list,
+  eigenvectors, eigenvector_scores = get_votes(ordered_matches,
+                                               dist_order,
                                                n_eigenvectors,
                                                K)
   labels = split_eigenvectors(eigenvectors, eigenvector_scores)
