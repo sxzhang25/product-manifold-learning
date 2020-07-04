@@ -198,7 +198,7 @@ def main():
     vecs = [phi[:,i] for i in range(1, n_eigenvectors+1)]
     eigenvectors_filename = './images/' + name + '_' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
     plot_eigenvectors(data,
-                      vecs[:100],
+                      vecs[:20], # CHANGE BACK TO 100
                       labels=[int(i) for i in range(1,n_eigenvectors+1)],
                       title='Laplace Eigenvectors ({})'.format(name),
                       filename=eigenvectors_filename)

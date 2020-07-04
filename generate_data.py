@@ -88,11 +88,14 @@ def calc_W(data, sigma=None):
   pairwise_sq_dists = squareform(pdist(data, 'sqeuclidean'))
 
   if sigma is None:
-    sigma = 0
-    for i in range(data.shape[0]):
-      sigma += np.min(np.delete(pairwise_sq_dists[i,:], i))
-    sigma /= data.shape[0]
+    # sigma = 0
+    # for i in range(data.shape[0]):
+    #   sigma += np.min(np.delete(pairwise_sq_dists[i,:], i))
+    # sigma /= data.shape[0]
+
     # sigma = 1
+
+    sigma = 1 / (data.shape[0]**(1 / (data.shape[1] / 2 + 3)))
 
   W = np.exp(-pairwise_sq_dists / sigma)
   t1 = time.perf_counter()
@@ -104,68 +107,45 @@ def calc_vars(data, W, n_comps=100):
   '''
   calculates phi, psi, and Sigma
   '''
-  # ones = np.ones(W.shape[0])
-  # p = W @ ones
-  # W2 = W / np.outer(p, p)
-  # v = np.sqrt(W2 @ ones)
-  # S = W2 / np.outer(v, v)
-  #
-  # V, Sigma, VT = randomized_svd(S,
-  #                               n_components=n_comps+1,
-  #                               n_iter=5,
-  #                               random_state=None)
-  # phi = V / V[:,0][None].T
 
-  # ones = np.ones(W.shape[0])
-  # v = np.sqrt(W @ ones)
-  # S = W / np.outer(v, v)
-  #
-  # V, Sigma, VT = randomized_svd(S,
-  #                               n_components=n_comps+1,
-  #                               n_iter=5,
-  #                               random_state=None)
-  # phi = V / V[:,0][None].T
-
-
-  # calculate D, M, S (use coifmann-lafon diffusion map)
   t0 = time.perf_counter()
+  ones = np.ones(W.shape[0])
+  p = W @ ones
+  W2 = W / np.outer(p, p)
+  v = np.sqrt(W2 @ ones)
+  S = W2 / np.outer(v, v)
+
+  V, Sigma, VT = randomized_svd(S,
+                                n_components=n_comps+1,
+                                n_iter=5,
+                                random_state=None)
+  phi = V / V[:,0][None].T
+  Sigma = 1 - Sigma
+
+  # calculate coifmann-lafon diffusion map
   d = np.zeros(data.shape[0])
   for i in range(d.shape[0]):
     d[i] = np.sum(W[i,:])
   D = np.diag(d)
   Dinv = scipy.linalg.inv(D)
 
-  # double-normalize W and recompute degree matrix
   W_ = Dinv @ W @ Dinv
   d = np.zeros(data.shape[0])
   for i in range(d.shape[0]):
     d[i] = np.sum(W_[i,:])
   D_ = np.diag(d)
   D_inv = scipy.linalg.inv(D_)
-  D_sqrt = np.sqrt(D_)
-  D_sqrt_inv = scipy.linalg.inv(D_sqrt)
 
-  # compute eigenvectors using SVD of symmetric matrix S = D^-1 M D^-1
-  M = D_inv @ W_
-  S = D_sqrt @ M @ D_sqrt_inv
+  I = np.eye(W_.shape[0])
+  P = I - D_inv @ W_
+  # for i in range(Sigma.shape[0]):
+  #   Sigma[i] = np.average((P[i,:] @ phi[:,i]) / [phi[:,i]])
+
+  w, _ = scipy.sparse.linalg.eigs(P, n_comps+1, which='SM')
+  Sigma = w.real
+
   t1 = time.perf_counter()
-  print("  Calculating variables took %2.2f seconds" % (t1-t0))
-
-  # use svd
-  t0 = time.perf_counter()
-  V, Sigma, VT = randomized_svd(S,
-                                n_components=n_comps+1,
-                                n_iter=5,
-                                random_state=None)
-
-  phi = D_sqrt_inv @ V
-  t1 = time.perf_counter()
-  print("  Calculating eigenvectors took %2.2f seconds" % (t1-t0))
-
-  # compute approximate eigenvalues of Laplacian
-  L = D - W
-  for i in range(phi.shape[1]):
-    Sigma[i] = np.abs(np.average((L @ phi[:,i]) / phi[:,i]))
+  print("  Calculating phi, Sigma took %2.2f seconds" % (t1-t0))
 
   return phi, Sigma
 
