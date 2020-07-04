@@ -37,9 +37,10 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
     # line segment and circle
     line_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
     circle_data = np.empty((n_samples,2))
-    for i in range(n_samples):
-      theta = 2 * np.pi * np.random.rand()
-      circle_data[i,:] = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
+    theta = 2 * np.pi * np.random.rand(n_samples)
+    circle_data[:,0] = (l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta)
+    circle_data[:,1] = (l1 + noise * (2 * np.random.rand(n_samples) - 1)) * np.sin(theta)
+    # circle_data = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((line_data, circle_data))
     data = np.row_stack(([l1, l2, 0], data))
 
@@ -84,12 +85,13 @@ def calc_W(data, sigma=None):
   calculates the weight matrix W
   '''
 
-  if sigma is None:
-    sigma = 1
-
   t0 = time.perf_counter()
   pairwise_sq_dists = squareform(pdist(data, 'sqeuclidean'))
-  W = np.exp(-pairwise_sq_dists / 2*sigma)
+
+  if sigma is None:
+    sigma = 1 / (data.shape[0]**(1 / (data.shape[1] / 2 + 3)))
+
+  W = np.exp(-pairwise_sq_dists / sigma)
   t1 = time.perf_counter()
   print("  Calculating W took %2.2f seconds" % (t1-t0))
 
@@ -100,37 +102,46 @@ def calc_vars(data, W, n_comps=100):
   calculates phi, psi, and Sigma
   '''
 
-  # calculate D, M, S
   t0 = time.perf_counter()
-  D = np.zeros(data.shape[0])
-  for i in range(D.shape[0]):
-    D[i] = np.sum(W[i,:])
-  D_ = np.diag(D)
-  D_inv = scipy.linalg.inv(D_)
-  D_sqrt = np.sqrt(D_)
-  D_sqrt_inv = scipy.linalg.inv(D_sqrt)
+  ones = np.ones(W.shape[0])
+  p = W @ ones
+  W2 = W / np.outer(p, p)
+  v = np.sqrt(W2 @ ones)
+  S = W2 / np.outer(v, v)
 
-  M = D_inv @ W
-  S = D_sqrt @ M @ D_sqrt_inv
-  t1 = time.perf_counter()
-  print("  Calculating variables took %2.2f seconds" % (t1-t0))
-
-  # use svd
-  t0 = time.perf_counter()
   V, Sigma, VT = randomized_svd(S,
                                 n_components=n_comps+1,
                                 n_iter=5,
                                 random_state=None)
+  phi = V / V[:,0][None].T
+  Sigma = 1 - Sigma
+
+  # # calculate coifmann-lafon diffusion map
+  # d = np.zeros(data.shape[0])
+  # for i in range(d.shape[0]):
+  #   d[i] = np.sum(W[i,:])
+  # D = np.diag(d)
+  # Dinv = scipy.linalg.inv(D)
+  #
+  # W_ = Dinv @ W @ Dinv
+  # d = np.zeros(data.shape[0])
+  # for i in range(d.shape[0]):
+  #   d[i] = np.sum(W_[i,:])
+  # D_ = np.diag(d)
+  # D_inv = scipy.linalg.inv(D_)
+  #
+  # I = np.eye(W_.shape[0])
+  # P = I - D_inv @ W_
+  # # for i in range(Sigma.shape[0]):
+  # #   Sigma[i] = np.average((P[i,:] @ phi[:,i]) / [phi[:,i]])
+  #
+  # w, _ = scipy.sparse.linalg.eigs(P, n_comps+1, which='SM')
+  # Sigma = w.real
 
   t1 = time.perf_counter()
-  print("  Calculating svd took %2.2f seconds" % (t1-t0))
-
-  # calculate phi, psi
-  phi = D_sqrt_inv @ V
-  # Sigma = 1 - Sigma
+  print("  Calculating phi, Sigma took %2.2f seconds" % (t1-t0))
 
   return phi, Sigma
-
 
 ###
 # FIND BEST EIGENVECTOR TRIPLETS
