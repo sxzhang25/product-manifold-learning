@@ -147,7 +147,7 @@ def calculate_score(data, v1, v2):
   score = np.linalg.norm((vs1 - vs2), ord=1) / vs1.shape[0]
   return score
 
-def find_match(data, v, a, candidates, Sigma, eps=10e-1):
+def find_match(data, a, candidates, Sigma, eps=10e-3):
   '''
   finds the best match to v out of candidates, according to score
   returns the best match and its distance from v
@@ -161,36 +161,34 @@ def find_match(data, v, a, candidates, Sigma, eps=10e-1):
   best_match = 0
   best_dist = np.inf
   for i in range(candidates.shape[1]):
-    if abs(a - Sigma[i]) / a < eps:
-      u = candidates[:,i]
-
+    d = abs(a - Sigma[i])
+    if d < eps:
       # test with positive
-      d = calculate_score(data, v, u)
-      if d < best_dist:
-        best_match = i
-        best_dist = d
-
-      # test with negative
-      d = calculate_score(data, v, -u)
       if d < best_dist:
         best_match = i
         best_dist = d
 
   return best_match, best_dist
 
-def find_best_matches(data, phi, Sigma, n_eigenvectors=100, eps=10e-2):
+def find_best_matches(data, phi, Sigma, n_eigenvectors=100, eps=10e-3):
   best_matches = {}
   best_dists = {}
   for i in range(1, n_eigenvectors+1):
     for j in range(i+1, n_eigenvectors+1):
       v1 = phi[:,i]
       v2 = phi[:,j]
-      v = v1 * v2
+      # v = v1 * v2
       a = Sigma[i] + Sigma[j]
-      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[j+1:], eps=eps)
-      triplet = [i, j, match + j + 1]
-      best_matches[match] = triplet
-      best_dists[match] = dist
+      match, dist = find_match(data, a, phi[:,j+1:], Sigma[j+1:], eps=eps)
+      if dist < eps:
+        triplet = (i, j, match + j + 1)
+        if triplet[2] not in best_dists:
+          best_matches[triplet[2]] = triplet
+          best_dists[triplet[2]] = dist
+        else:
+          if dist < best_dists[triplet[2]]:
+            best_matches[triplet[2]] = triplet
+            best_dists[triplet[2]] = dist
 
   return best_matches, best_dists
 
@@ -318,6 +316,8 @@ def main():
   # find triplets
   print("\nComputing triplets...")
   matches, dists = find_best_matches(data, phi, Sigma, n_eigenvectors)
+  print(matches)
+  print(dists)
 
   print("\nSigma...")
   print(Sigma)
