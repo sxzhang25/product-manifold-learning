@@ -174,19 +174,19 @@ def main():
   phi_filename = './data/phi_' + name + '.dat'
 
   data = np.loadtxt(data_filename)
-  l1, l2 = data[0,:2]
-  data = data[1:,:]
   phi = np.loadtxt(phi_filename)
 
   if datatype == 'line_circle':
     data_r = np.zeros((data.shape[0],2))
     data_r[:,0] = data[:,0]
-    data_r[:,1] = np.arctan2(data[:,2], data[:,1]) % (2 * np.pi)
+    data_r[:,1] = np.arctan2(data[:,2], data[:,1])
   elif datatype == 'rect_circle':
     data_r = np.zeros((data.shape[0],3))
     data_r[:,0] = data[:,0]
     data_r[:,1] = data[:,1]
     data_r[:,2] = np.arctan2(data[:,3], data[:,2])
+  else:
+    data_r = data
 
   if not precomputed:
     # plot original data
