@@ -174,21 +174,19 @@ def main():
   phi_filename = './data/phi_' + name + '.dat'
 
   data = np.loadtxt(data_filename)
-  l1, l2 = data[0,:2]
-  data = data[1:,:]
   phi = np.loadtxt(phi_filename)
 
   if datatype == 'line_circle':
     data_r = np.zeros((data.shape[0],2))
     data_r[:,0] = data[:,0]
     data_r[:,1] = np.arctan2(data[:,2], data[:,1])
-    data = data_r
   elif datatype == 'rect_circle':
     data_r = np.zeros((data.shape[0],3))
     data_r[:,0] = data[:,0]
     data_r[:,1] = data[:,1]
     data_r[:,2] = np.arctan2(data[:,3], data[:,2])
-    data = data_r
+  else:
+    data_r = data
 
   if not precomputed:
     # plot original data
@@ -197,8 +195,8 @@ def main():
     # plot eigenvectors
     vecs = [phi[:,i] for i in range(1, n_eigenvectors+1)]
     eigenvectors_filename = './images/' + name + '_' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
-    plot_eigenvectors(data,
-                      vecs[:20], # CHANGE BACK TO 100
+    plot_eigenvectors(data_r,
+                      vecs[:100],
                       labels=[int(i) for i in range(1,n_eigenvectors+1)],
                       title='Laplace Eigenvectors ({})'.format(name),
                       filename=eigenvectors_filename)
@@ -210,12 +208,12 @@ def main():
   vecs1 = [phi[:,int(i)] for i in manifold1]
   vecs2 = [phi[:,int(i)] for i in manifold2]
 
-  plot_eigenvectors(data,
+  plot_eigenvectors(data_r,
                     vecs1,
                     labels=[int(i) for i in manifold1],
                     filename='./images/manifold1_{}_{}.png'.format(name, test_name))
 
-  plot_eigenvectors(data,
+  plot_eigenvectors(data_r,
                     vecs2,
                     labels=[int(i) for i in manifold2],
                     filename='./images/manifold2_{}_{}.png'.format(name, test_name))
