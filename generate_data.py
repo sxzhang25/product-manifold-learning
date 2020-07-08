@@ -31,7 +31,6 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
     line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
     line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
     data = np.column_stack((line1_data, line2_data))
-    data = np.row_stack(([l1, l2], data))
 
   elif datatype=='line_circle':
     # line segment and circle
@@ -39,10 +38,8 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
     circle_data = np.empty((n_samples,2))
     theta = 2 * np.pi * np.random.rand(n_samples)
     circle_data[:,0] = (l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta)
-    circle_data[:,1] = (l1 + noise * (2 * np.random.rand(n_samples) - 1)) * np.sin(theta)
-    # circle_data = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
+    circle_data[:,1] = (l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.sin(theta)
     data = np.column_stack((line_data, circle_data))
-    data = np.row_stack(([l1, l2, 0], data))
 
   elif datatype=='circle_circle':
     # circle and circle
@@ -54,7 +51,6 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
       theta = 2 * np.pi * np.random.rand()
       circleB_data[i,:] = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((circleA_data, circleB_data))
-    data = np.row_stack(([l1, l2, 0, 0], data))
 
   elif datatype=='rect_circle':
     # rectangle and circle
@@ -67,7 +63,6 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
       theta = 2 * np.pi * np.random.rand()
       circle_data[i,:] = [(l1 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l1 * np.sin(theta)]
     data = np.column_stack((rect_data, circle_data))
-    data = np.row_stack(([l1, l2, 0, 0], data))
 
   else:
     print('Error: invalid data type')
@@ -115,28 +110,6 @@ def calc_vars(data, W, n_comps=100):
                                 random_state=None)
   phi = V / V[:,0][None].T
   Sigma = 1 - Sigma
-
-  # # calculate coifmann-lafon diffusion map
-  # d = np.zeros(data.shape[0])
-  # for i in range(d.shape[0]):
-  #   d[i] = np.sum(W[i,:])
-  # D = np.diag(d)
-  # Dinv = scipy.linalg.inv(D)
-  #
-  # W_ = Dinv @ W @ Dinv
-  # d = np.zeros(data.shape[0])
-  # for i in range(d.shape[0]):
-  #   d[i] = np.sum(W_[i,:])
-  # D_ = np.diag(d)
-  # D_inv = scipy.linalg.inv(D_)
-  #
-  # I = np.eye(W_.shape[0])
-  # P = I - D_inv @ W_
-  # # for i in range(Sigma.shape[0]):
-  # #   Sigma[i] = np.average((P[i,:] @ phi[:,i]) / [phi[:,i]])
-  #
-  # w, _ = scipy.sparse.linalg.eigs(P, n_comps+1, which='SM')
-  # Sigma = w.real
 
   t1 = time.perf_counter()
   print("  Calculating phi, Sigma took %2.2f seconds" % (t1-t0))
@@ -357,7 +330,6 @@ def main():
     print("\nGenerating random data...")
     data = generate_data(l1, l2, noise=noise, n_samples=n_samples, seed=seed, datatype=datatype)
     np.savetxt(data_filename, data)
-    data = data[1:,:]
 
     # compute eigenvectors
     print("\nComputing eigenvectors...")
