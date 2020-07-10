@@ -309,6 +309,7 @@ def main():
   sigma = params['sigma']
   n_comps = params['n_comps']
   n_eigenvectors = params['n_eigenvectors']
+  eps = params['eps']
   K = params['K']
   dist_thresh = params['dist_thresh']
 
@@ -347,7 +348,7 @@ def main():
 
   # find triplets
   print("\nComputing triplets...")
-  matches, dists = find_best_matches(data, phi, Sigma, dist_thresh, n_eigenvectors)
+  matches, dists = find_best_matches(data, phi, Sigma, dist_thresh, n_eigenvectors, eps)
   print(matches)
   print(dists)
 
