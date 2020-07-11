@@ -173,7 +173,6 @@ def find_match(data, v, a, candidates, Sigma, eps=1.5):
         best_match = i
         best_dist = d
 
-  # print(best_match, best_dist)
   return best_match, best_dist
 
 def find_best_matches(data, phi, Sigma, dist_thresh, n_eigenvectors=100, eps=10e-3):
