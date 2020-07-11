@@ -104,10 +104,8 @@ def calc_vars(data, W, n_comps=100):
 
   t0 = time.perf_counter()
   ones = np.ones(W.shape[0])
-  p = W @ ones
-  W2 = W / np.outer(p, p)
-  v = np.sqrt(W2 @ ones)
-  S = W2 / np.outer(v, v)
+  v = np.sqrt(W @ ones)
+  S = W / np.outer(v, v)
 
   V, Sigma, VT = randomized_svd(S,
                                 n_components=n_comps+1,
@@ -143,7 +141,7 @@ def calculate_score(data, v1, v2):
   vs2 = scale(v2, [-1,1])
 
   # calculate L1 distance between v1 and v2
-  score = np.linalg.norm((vs1 - vs2), ord=1) / vs1.shape[0]
+  score = np.linalg.norm((vs1 - vs2), ord=2) / vs1.shape[0]
   return score
 
 def find_match(data, v, a, candidates, Sigma, eps=1.5):
@@ -177,29 +175,6 @@ def find_match(data, v, a, candidates, Sigma, eps=1.5):
 
   # print(best_match, best_dist)
   return best_match, best_dist
-
-# def find_match(data, a, candidates, Sigma, eps=10e-3):
-#   '''
-#   finds the best match to v out of candidates, according to score
-#   returns the best match and its distance from v
-#
-#   v: the eigenvector (product of two base vectors) to match
-#   a: the eigenvalue to match (sum of two base eigenvalues)
-#   candidates: an array of vectors (vertically concatenated)
-#   Sigma: the eigenvalues of the data
-#   '''
-#
-#   best_match = 0
-#   best_dist = np.inf
-#   for i in range(candidates.shape[1]):
-#     d = abs(a - Sigma[i])
-#     if d < eps:
-#       # test with positive
-#       if d < best_dist:
-#         best_match = i
-#         best_dist = d
-#
-#   return best_match, best_dist
 
 def find_best_matches(data, phi, Sigma, dist_thresh, n_eigenvectors=100, eps=10e-3):
   best_matches = {}
