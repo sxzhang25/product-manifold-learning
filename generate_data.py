@@ -121,7 +121,6 @@ def calc_vars(data, W, n_comps=100):
 
   return phi, Sigma
 
-
 ###
 # FIND BEST EIGENVECTOR TRIPLETS
 ###
