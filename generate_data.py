@@ -108,7 +108,7 @@ def calc_vars(data, W, n_comps=100):
   S = W / np.outer(v, v)
 
   V, Sigma, VT = randomized_svd(S,
-                                n_components=n_comps+1,
+                                n_components=n_comps,
                                 n_iter=5,
                                 random_state=None)
   phi = V / V[:,0][:,None]
@@ -123,85 +123,57 @@ def calc_vars(data, W, n_comps=100):
 # FIND BEST EIGENVECTOR TRIPLETS
 ###
 
-def scale(v1, v2):
+def calculate_score(v_i, v_j):
   '''
-  scales v1 to match the range of v2
-  '''
-
-  vs = (np.max(v2) - np.min(v2))/(np.max(v1) - np.min(v1)) * (v1 - np.min(v1)) + np.min(v2)
-  return vs
-
-def calculate_score(data, v1, v2):
-  '''
-  calculates proximity of v2 to v1
+  calculates proximity of v_i to v_j
   '''
 
-  # scale v1, v2 to [-1,1]
-  vs1 = scale(v1, [-1,1])
-  vs2 = scale(v2, [-1,1])
+  # normalize vectors to unit norm
+  v_i /= np.linalg.norm(v_i)
+  v_j /= np.linalg.norm(v_j)
 
-  # calculate L1 distance between v1 and v2
-  score = np.linalg.norm((vs1 - vs2), ord=2) / vs1.shape[0]
+  # calculate L2 distance between v1 and v2
+  score = np.linalg.norm((v_i - v_j), ord=2)
   return score
 
-def find_match(data, v, a, candidates, Sigma, eps=1.5):
-  '''
-  finds the best match to v out of candidates, according to score
-  returns the best match and its distance from v
-
-  v: the eigenvector (product of two base vectors) to match
-  a: the eigenvalue to match (sum of two base eigenvalues)
-  candidates: an array of vectors (vertically concatenated)
-  Sigma: the eigenvalues of the data
-  '''
-
-  best_match = 0
-  best_dist = np.inf
-  for i in range(candidates.shape[1]):
-    if abs(a - Sigma[i]) / a < eps:
-      u = candidates[:,i]
-
-      # test with positive
-      d = calculate_score(data, v, u)
-      if d < best_dist:
-        best_match = i
-        best_dist = d
-
-      # test with negative
-      d = calculate_score(data, v, -u)
-      if d < best_dist:
-        best_match = i
-        best_dist = d
-
-  return best_match, best_dist
-
-def find_best_matches(data, phi, Sigma, dist_thresh, n_eigenvectors=100, eps=10e-3):
+def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
   best_matches = {}
-  best_dists = {}
-  for i in range(1, n_eigenvectors+1):
-    for j in range(i+1, n_eigenvectors+1):
-      v1 = phi[:,i]
-      v2 = phi[:,j]
-      v = v1 * v2
-      a = Sigma[i] + Sigma[j]
-      match, dist = find_match(data, v, a, phi[:,j+1:], Sigma[j+1:], eps=eps)
-      if dist < dist_thresh:
-        triplet = (i, j, match + j + 1)
-        if triplet[2] not in best_dists:
-          best_matches[triplet[2]] = triplet
-          best_dists[triplet[2]] = dist
-        else:
-          if dist < best_dists[triplet[2]]:
-            best_matches[triplet[2]] = triplet
-            best_dists[triplet[2]] = dist
+  min_dists = {}
+  for k in range(2, n_comps):
+    v_k = phi[:,k]
+    lambda_k = Sigma[k]
+    min_dist = np.inf
+    best_pair = [0, 1]
+    for i in range(0, k):
+      for j in range(i, k):
+        v_i = phi[:,i]
+        v_j = phi[:,j]
+        v_ij = v_i * v_j
+        lambda_ij = Sigma[i] + Sigma[j]
+        if abs(lambda_k - lambda_ij) < lambda_thresh:
+          # test with positive
+          d = calculate_score(v_ij, v_k)
+          if d < min_dist:
+            best_pair = [i, j]
+            min_dist = d
 
-  return best_matches, best_dists
+          # test with negative
+          d = calculate_score(v_ij, -v_k)
+          if d < min_dist:
+            best_pair = [i, j]
+            min_dist = d
 
+    if 0 not in best_pair:
+      best_matches[k] = best_pair
+      min_dists[k] = min_dist
+
+  print(best_matches)
+  return best_matches, min_dists
 
 ###
 # VOTING SCHEME
 ###
-def vote(edge_scores, votes, triplet, dist):
+def vote(edge_scores, votes, Sigma, triplet, dist):
   '''
   the scoring for scheme 3 is as follows:
   when encountering a new triplet (t1, t2, t3):
@@ -214,13 +186,14 @@ def vote(edge_scores, votes, triplet, dist):
   '''
 
   t1, t2, t3 = [int(i) for i in triplet]
-  edge_scores[t1][t2] += np.exp(dist)
-  edge_scores[t2][t1] += np.exp(dist)
+  edge_scores[t1][t2] += 1
+  edge_scores[t2][t1] += 1
+
   votes[t1] += 1
   votes[t2] += 1
   votes[t3] -= 1
 
-def get_votes(best_matches, best_dists, n_eigenvectors, K):
+def get_votes(best_matches, best_dists, Sigma, n_eigenvectors, K):
   '''
   gets edge votes for the triplets
 
@@ -229,13 +202,11 @@ def get_votes(best_matches, best_dists, n_eigenvectors, K):
   '''
 
   scores = np.zeros((n_eigenvectors, n_eigenvectors))
-  votes = np.zeros(n_eigenvectors, dtype='int')
+  votes = np.zeros(n_eigenvectors)
   for triplet, dist in zip(best_matches, best_dists):
-    if (triplet[0] < n_eigenvectors and
-      triplet[1] < n_eigenvectors and
-      triplet[2] < n_eigenvectors):
-      vote(scores, votes, triplet, dist)
+    vote(scores, votes, Sigma, triplet, dist)
 
+  print(votes)
   edges = np.where(votes>K)[0]
   edge_scores = np.zeros((len(edges), len(edges)))
   for i in range(edge_scores.shape[0]):
@@ -282,7 +253,7 @@ def main():
   sigma = params['sigma']
   n_comps = params['n_comps']
   n_eigenvectors = params['n_eigenvectors']
-  eps = params['eps']
+  lambda_thresh = params['lambda_thresh']
   K = params['K']
   dist_thresh = params['dist_thresh']
 
@@ -321,7 +292,7 @@ def main():
 
   # find triplets
   print("\nComputing triplets...")
-  matches, dists = find_best_matches(data, phi, Sigma, dist_thresh, n_eigenvectors, eps)
+  matches, dists = find_triplets(phi, Sigma, n_comps, lambda_thresh)
   print(matches)
   print(dists)
 
@@ -331,7 +302,7 @@ def main():
   matches_list = []
   dists_list = []
   for match in list(matches):
-    matches_list.append(matches[match])
+    matches_list.append([matches[match][0], matches[match][1], match])
     dists_list.append(dists[match])
 
   dist_order = np.argsort(dists_list)
@@ -342,6 +313,7 @@ def main():
   print("\nSplitting eigenvectors...")
   eigenvectors, eigenvector_scores = get_votes(ordered_matches,
                                                dist_order,
+                                               Sigma,
                                                n_eigenvectors,
                                                K)
   labels = split_eigenvectors(eigenvectors, eigenvector_scores)
