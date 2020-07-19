@@ -193,11 +193,11 @@ def main():
     plot_og_data(data, title='Original Data ({})'.format(name), filename='./images/{}_{}_original_data.png'.format(name, test_name))
 
     # plot eigenvectors
-    vecs = [phi[:,i] for i in range(1, n_eigenvectors+1)]
+    vecs = [phi[:,i] for i in range(1, n_eigenvectors)]
     eigenvectors_filename = './images/' + name + '_' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
     plot_eigenvectors(data_r,
                       vecs[:100],
-                      labels=[int(i) for i in range(1,n_eigenvectors+1)],
+                      labels=[int(i) for i in range(1,n_eigenvectors)],
                       title='Laplace Eigenvectors ({})'.format(name),
                       filename=eigenvectors_filename)
 
