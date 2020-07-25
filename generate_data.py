@@ -145,7 +145,7 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
     min_dist = np.inf
     best_pair = [0, 1]
     for i in range(0, k):
-      for j in range(i, k):
+      for j in range(i+1, k):
         v_i = phi[:,i]
         v_j = phi[:,j]
         v_ij = v_i * v_j
@@ -167,68 +167,66 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
       best_matches[k] = best_pair
       min_dists[k] = min_dist
 
-  print(best_matches)
   return best_matches, min_dists
 
 ###
 # VOTING SCHEME
 ###
-def vote(edge_scores, votes, Sigma, triplet, dist):
-  '''
-  the scoring for scheme 3 is as follows:
-  when encountering a new triplet (t1, t2, t3):
-  place a negative vote for edge t1 - t2
-  (they are likely to be in opposite sets)
-  place a positive vote for edges t1 - t1 and t2 - t2
-  (they are likely to be eigenvectors of an independent manifold)
-  place a negative vote for edge t3 - t3
-  (t3 is unlikely to be an eigenvector of an independent manifold)
-  '''
 
-  t1, t2, t3 = [int(i) for i in triplet]
-  edge_scores[t1][t2] += 1
-  edge_scores[t2][t1] += 1
-
-  votes[t1] += 1
-  votes[t2] += 1
-  votes[t3] -= 1
-
-def get_votes(best_matches, best_dists, Sigma, n_eigenvectors, K):
-  '''
-  gets edge votes for the triplets
-
-  returns an (n_eigenvectors x n_eigenvectors) numpy array of edges,
-  where n_eigenvectors is the number of eigenvectors being examined
-  '''
-
-  scores = np.zeros((n_eigenvectors, n_eigenvectors))
-  votes = np.zeros(n_eigenvectors)
-  for triplet, dist in zip(best_matches, best_dists):
-    vote(scores, votes, Sigma, triplet, dist)
-
-  print(votes)
-  edges = np.where(votes>K)[0]
-  edge_scores = np.zeros((len(edges), len(edges)))
-  for i in range(edge_scores.shape[0]):
-    for j in range(edge_scores.shape[1]):
-      if i == j:
-        edge_scores[i][j] = 0
-      edge_scores[i][j] = scores[edges[i]][edges[j]]
-
-  edge_scores = np.exp(-edge_scores**2 / 2)
-  return edges, edge_scores
-
-def split_eigenvectors(edges, edge_scores):
+def split_eigenvectors(best_matches, dists, n_eigenvectors, K=2):
   '''
   clusters eigenvectors into two separate groups
   '''
+  # sort triplets from smallest distance to largest distance (quality of triplet)
+  triplets_list = []
+  sorted_dists = []
+  for match in list(best_matches):
+    triplets_list.append([best_matches[match][0], best_matches[match][1], match])
+    sorted_dists.append(dists[match])
+
+  dist_order = np.argsort(sorted_dists)
+  sorted_matches = [triplets_list[i] for i in dist_order]
+  print(sorted_matches)
+
+  votes = np.zeros(n_eigenvectors)
+  mixtures = set()
+
+  W = np.zeros((n_eigenvectors, n_eigenvectors))
+  for n,triplet in enumerate(sorted_matches):
+    v_i, v_j, v_k = triplet
+    if v_i in mixtures or v_j in mixtures or votes[v_k] > 0:
+      print("rejected", triplet)
+      continue
+    else:
+      print("accepted", triplet)
+      W[v_i][v_j] += n_eigenvectors - n + 1
+      W[v_j][v_i] += n_eigenvectors - n + 1
+      votes[v_i] += 1
+      votes[v_j] += 1
+      votes[v_k] -= 1
+      mixtures.add(v_k)
+
+  # perform spectral clustering based on independent vectors
+  independent = np.where(votes>K)[0]
+  print("\n", independent)
+  W_ = np.zeros((len(independent), len(independent)))
+  for i in range(W_.shape[0]):
+    for j in range(W_.shape[1]):
+      if i == j:
+        W_[i][j] = 0
+      else:
+        W_[i][j] = W[independent[i]][independent[j]]
+
+  W_ = np.exp(-W_**2 / 2)
+  np.set_printoptions(precision=3)
+  print(W_)
   clustering = SpectralClustering(n_clusters=2,  # default: 2
                                   affinity='precomputed',
                                   assign_labels='kmeans',
-                                  random_state=0).fit(edge_scores)
+                                  random_state=0).fit(W_)
 
-  labels = np.zeros((2, len(edges)), dtype='int')
-  labels[0,:] = edges
+  labels = np.zeros((2, len(independent)), dtype='int')
+  labels[0,:] = independent
   labels[1,:] = clustering.labels_
   return labels
 
@@ -293,30 +291,25 @@ def main():
   # find triplets
   print("\nComputing triplets...")
   matches, dists = find_triplets(phi, Sigma, n_comps, lambda_thresh)
-  print(matches)
-  print(dists)
 
-  print("\nSigma...")
-  print(Sigma)
-
-  matches_list = []
-  dists_list = []
-  for match in list(matches):
-    matches_list.append([matches[match][0], matches[match][1], match])
-    dists_list.append(dists[match])
-
-  dist_order = np.argsort(dists_list)
-  ordered_matches = [matches_list[i] for i in dist_order]
-  print('\n%d matches found\n' % (len(ordered_matches)), ordered_matches)
+  # matches_list = []
+  # dists_list = []
+  # for match in list(matches):
+  #   matches_list.append([matches[match][0], matches[match][1], match])
+  #   dists_list.append(dists[match])
+  #
+  # dist_order = np.argsort(dists_list)
+  # ordered_matches = [matches_list[i] for i in dist_order]
+  # print('\n%d matches found\n' % (len(ordered_matches)), ordered_matches)
 
   # split eigenvectors
   print("\nSplitting eigenvectors...")
-  eigenvectors, eigenvector_scores = get_votes(ordered_matches,
-                                               dist_order,
-                                               Sigma,
-                                               n_eigenvectors,
-                                               K)
-  labels = split_eigenvectors(eigenvectors, eigenvector_scores)
+  # eigenvectors, eigenvector_scores = get_votes(ordered_matches,
+  #                                              dist_order,
+  #                                              Sigma,
+  #                                              n_eigenvectors,
+  #                                              K)
+  labels = split_eigenvectors(matches, dists, n_eigenvectors)
 
   if labels[1][0] == 0:
     manifold1 = labels[0][np.where(labels[1]==0)[0]]
