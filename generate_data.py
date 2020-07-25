@@ -192,43 +192,50 @@ def split_eigenvectors(best_matches, dists, n_eigenvectors, K=2):
   mixtures = set()
 
   W = np.zeros((n_eigenvectors, n_eigenvectors))
-  for n,triplet in enumerate(sorted_matches):
+  for triplet in sorted_matches:
     v_i, v_j, v_k = triplet
-    if v_i in mixtures or v_j in mixtures or votes[v_k] > 0:
-      print("rejected", triplet)
-      continue
-    else:
-      print("accepted", triplet)
-      W[v_i][v_j] += n_eigenvectors - n + 1
-      W[v_j][v_i] += n_eigenvectors - n + 1
-      votes[v_i] += 1
-      votes[v_j] += 1
-      votes[v_k] -= 1
-      mixtures.add(v_k)
+    W[v_i][v_k] += 1
+    W[v_k][v_i] += 1
+    W[v_j][v_k] += 1
+    W[v_k][v_j] += 1
+    W[v_i][v_j] += 1
+    W[v_j][v_i] += 1
 
-  # perform spectral clustering based on independent vectors
-  independent = np.where(votes>K)[0]
-  print("\n", independent)
-  W_ = np.zeros((len(independent), len(independent)))
-  for i in range(W_.shape[0]):
-    for j in range(W_.shape[1]):
-      if i == j:
-        W_[i][j] = 0
-      else:
-        W_[i][j] = W[independent[i]][independent[j]]
-
-  W_ = np.exp(-W_**2 / 2)
-  np.set_printoptions(precision=3)
-  print(W_)
-  clustering = SpectralClustering(n_clusters=2,  # default: 2
+  W = np.exp(-W**2 / 2)
+  clustering = SpectralClustering(n_clusters=3,  # default: 2
                                   affinity='precomputed',
                                   assign_labels='kmeans',
-                                  random_state=0).fit(W_)
+                                  random_state=0).fit(W)
 
-  labels = np.zeros((2, len(independent)), dtype='int')
-  labels[0,:] = independent
+  labels = np.zeros((2, n_eigenvectors), dtype='int')
+  labels[0,:] = np.arange(n_eigenvectors)
   labels[1,:] = clustering.labels_
+  print(labels)
   return labels
+
+  # perform spectral clustering based on independent vectors
+  # independent = np.where(votes>K)[0]
+  # print("\n", independent)
+  # W_ = np.zeros((len(independent), len(independent)))
+  # for i in range(W_.shape[0]):
+  #   for j in range(W_.shape[1]):
+  #     if i == j:
+  #       W_[i][j] = 0
+  #     else:
+  #       W_[i][j] = W[independent[i]][independent[j]]
+  #
+  # W_ = np.exp(-W_**2 / 2)
+  # np.set_printoptions(precision=3)
+  # print(W_)
+  # clustering = SpectralClustering(n_clusters=2,  # default: 2
+  #                                 affinity='precomputed',
+  #                                 assign_labels='kmeans',
+  #                                 random_state=0).fit(W_)
+  #
+  # labels = np.zeros((2, len(independent)), dtype='int')
+  # labels[0,:] = independent
+  # labels[1,:] = clustering.labels_
+  # return labels
 
 def main():
   datafile = sys.argv[1]
