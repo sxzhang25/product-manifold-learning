@@ -150,18 +150,19 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
         v_j = phi[:,j]
         v_ij = v_i * v_j
         lambda_ij = Sigma[i] + Sigma[j]
-        if abs(lambda_k - lambda_ij) < lambda_thresh:
+        eig_d = abs(lambda_k - lambda_ij)
+        if eig_d < lambda_thresh:
           # test with positive
           d = calculate_score(v_ij, v_k)
           if d < min_dist:
             best_pair = [i, j]
-            min_dist = d
+            min_dist = d + eig_d
 
           # test with negative
           d = calculate_score(v_ij, -v_k)
           if d < min_dist:
             best_pair = [i, j]
-            min_dist = d
+            min_dist = d + eig_d
 
     if 0 not in best_pair:
       best_matches[k] = best_pair
@@ -194,48 +195,38 @@ def split_eigenvectors(best_matches, dists, n_eigenvectors, K=2):
   W = np.zeros((n_eigenvectors, n_eigenvectors))
   for triplet in sorted_matches:
     v_i, v_j, v_k = triplet
-    W[v_i][v_k] += 1
-    W[v_k][v_i] += 1
-    W[v_j][v_k] += 1
-    W[v_k][v_j] += 1
-    W[v_i][v_j] += 1
-    W[v_j][v_i] += 1
-
-  W = np.exp(-W**2 / 2)
-  clustering = SpectralClustering(n_clusters=3,  # default: 2
-                                  affinity='precomputed',
-                                  assign_labels='kmeans',
-                                  random_state=0).fit(W)
-
-  labels = np.zeros((2, n_eigenvectors), dtype='int')
-  labels[0,:] = np.arange(n_eigenvectors)
-  labels[1,:] = clustering.labels_
-  print(labels)
-  return labels
+    if votes[v_k] >= K or v_i in mixtures or v_j in mixtures:
+      continue
+    else:
+      W[v_i][v_j] += 1
+      W[v_j][v_i] += 1
+      votes[v_i] += 1
+      votes[v_j] += 1
+      mixtures.add(v_k)
 
   # perform spectral clustering based on independent vectors
-  # independent = np.where(votes>K)[0]
-  # print("\n", independent)
-  # W_ = np.zeros((len(independent), len(independent)))
-  # for i in range(W_.shape[0]):
-  #   for j in range(W_.shape[1]):
-  #     if i == j:
-  #       W_[i][j] = 0
-  #     else:
-  #       W_[i][j] = W[independent[i]][independent[j]]
-  #
-  # W_ = np.exp(-W_**2 / 2)
-  # np.set_printoptions(precision=3)
-  # print(W_)
-  # clustering = SpectralClustering(n_clusters=2,  # default: 2
-  #                                 affinity='precomputed',
-  #                                 assign_labels='kmeans',
-  #                                 random_state=0).fit(W_)
-  #
-  # labels = np.zeros((2, len(independent)), dtype='int')
-  # labels[0,:] = independent
-  # labels[1,:] = clustering.labels_
-  # return labels
+  independent = np.where(votes>K)[0]
+  print("\n", independent)
+  W_ = np.zeros((len(independent), len(independent)))
+  for i in range(W_.shape[0]):
+    for j in range(W_.shape[1]):
+      if i == j:
+        W_[i][j] = 0
+      else:
+        W_[i][j] = W[independent[i]][independent[j]]
+
+  W_ = np.exp(-W_**2 / 2)
+  np.set_printoptions(precision=3)
+  print(W_)
+  clustering = SpectralClustering(n_clusters=2,  # default: 2
+                                  affinity='precomputed',
+                                  assign_labels='kmeans',
+                                  random_state=0).fit(W_)
+
+  labels = np.zeros((2, len(independent)), dtype='int')
+  labels[0,:] = independent
+  labels[1,:] = clustering.labels_
+  return labels
 
 def main():
   datafile = sys.argv[1]
