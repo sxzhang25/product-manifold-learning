@@ -73,13 +73,6 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
 # COMPUTE EIGENVECTORS
 ###
 
-def get_sigma(n_samples):
-  '''
-  calculates an appropriate sigma
-  '''
-  sigma = 1 / (n_samples**(1 / (n_samples / 2 + 3)))
-  return sigma
-
 def calc_W(data, sigma=None):
   '''
   calculates the weight matrix W
@@ -97,7 +90,7 @@ def calc_W(data, sigma=None):
 
   return W
 
-def calc_vars(data, W, n_comps=100):
+def calc_vars(data, W, sigma, n_comps=100):
   '''
   calculates phi, psi, and Sigma
   '''
@@ -112,7 +105,7 @@ def calc_vars(data, W, n_comps=100):
                                 n_iter=5,
                                 random_state=None)
   phi = V / V[:,0][:,None]
-  Sigma = -np.log(Sigma) / get_sigma(data.shape[0])
+  Sigma = -np.log(Sigma) / sigma
 
   t1 = time.perf_counter()
   print("  Calculating phi, Sigma took %2.2f seconds" % (t1-t0))
@@ -144,7 +137,7 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
     lambda_k = Sigma[k]
     min_dist = np.inf
     best_pair = [0, 1]
-    for i in range(0, k):
+    for i in range(1, k):
       for j in range(i+1, k):
         v_i = phi[:,i]
         v_j = phi[:,j]
@@ -156,13 +149,13 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
           d = calculate_score(v_ij, v_k)
           if d < min_dist:
             best_pair = [i, j]
-            min_dist = d + eig_d
+            min_dist = d
 
           # test with negative
           d = calculate_score(v_ij, -v_k)
           if d < min_dist:
             best_pair = [i, j]
-            min_dist = d + eig_d
+            min_dist = d
 
     if 0 not in best_pair:
       best_matches[k] = best_pair
@@ -174,7 +167,7 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, dists, n_eigenvectors, K=2):
+def split_eigenvectors(best_matches, dists, n_eigenvectors, K):
   '''
   clusters eigenvectors into two separate groups
   '''
@@ -185,27 +178,25 @@ def split_eigenvectors(best_matches, dists, n_eigenvectors, K=2):
     triplets_list.append([best_matches[match][0], best_matches[match][1], match])
     sorted_dists.append(dists[match])
 
-  dist_order = np.argsort(sorted_dists)
-  sorted_matches = [triplets_list[i] for i in dist_order]
-  print(sorted_matches)
+  print("\nTriplets...")
+  for triplet in triplets_list:
+    print(triplet)
 
   votes = np.zeros(n_eigenvectors)
-  mixtures = set()
+  mixtures = set() # oon't do suppression here (use simpler voting scheme)
 
   W = np.zeros((n_eigenvectors, n_eigenvectors))
-  for triplet in sorted_matches:
+  for triplet in triplets_list:
     v_i, v_j, v_k = triplet
-    if votes[v_k] >= K or v_i in mixtures or v_j in mixtures:
-      continue
-    else:
-      W[v_i][v_j] += 1
-      W[v_j][v_i] += 1
-      votes[v_i] += 1
-      votes[v_j] += 1
-      mixtures.add(v_k)
+    W[v_i][v_j] += 1
+    W[v_j][v_i] += 1
+    votes[v_i] += 1
+    votes[v_j] += 1
+
+  print("\nVotes:\n", votes)
 
   # perform spectral clustering based on independent vectors
-  independent = np.where(votes>K)[0]
+  independent = np.where(votes>=K)[0]
   print("\n", independent)
   W_ = np.zeros((len(independent), len(independent)))
   for i in range(W_.shape[0]):
@@ -251,7 +242,6 @@ def main():
   n_eigenvectors = params['n_eigenvectors']
   lambda_thresh = params['lambda_thresh']
   K = params['K']
-  dist_thresh = params['dist_thresh']
 
   # filenames
   data_filename = './data/data_' + name + '.dat'  # switch to path containing data
@@ -281,7 +271,7 @@ def main():
     # compute eigenvectors
     print("\nComputing eigenvectors...")
     W = calc_W(data, sigma=sigma)
-    phi, Sigma = calc_vars(data, W, n_comps=n_comps)
+    phi, Sigma = calc_vars(data, W, sigma, n_comps=n_comps)
 
     np.savetxt(phi_filename, phi)
     np.savetxt(Sigma_filename, Sigma)
@@ -290,24 +280,9 @@ def main():
   print("\nComputing triplets...")
   matches, dists = find_triplets(phi, Sigma, n_comps, lambda_thresh)
 
-  # matches_list = []
-  # dists_list = []
-  # for match in list(matches):
-  #   matches_list.append([matches[match][0], matches[match][1], match])
-  #   dists_list.append(dists[match])
-  #
-  # dist_order = np.argsort(dists_list)
-  # ordered_matches = [matches_list[i] for i in dist_order]
-  # print('\n%d matches found\n' % (len(ordered_matches)), ordered_matches)
-
   # split eigenvectors
   print("\nSplitting eigenvectors...")
-  # eigenvectors, eigenvector_scores = get_votes(ordered_matches,
-  #                                              dist_order,
-  #                                              Sigma,
-  #                                              n_eigenvectors,
-  #                                              K)
-  labels = split_eigenvectors(matches, dists, n_eigenvectors)
+  labels = split_eigenvectors(matches, dists, n_eigenvectors, K)
 
   if labels[1][0] == 0:
     manifold1 = labels[0][np.where(labels[1]==0)[0]]
