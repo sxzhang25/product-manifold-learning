@@ -167,7 +167,6 @@ def main():
   n_comps = params['n_comps']
   n_eigenvectors = params['n_eigenvectors']
   K = params['K']
-  dist_thresh = params['dist_thresh']
 
   # load data
   data_filename = './data/data_' + name + '.dat'
@@ -221,7 +220,7 @@ def main():
   plot_independent_eigenvectors(manifold1,
                                 manifold2,
                                 n_eigenvectors,
-                                title='d={}'.format(dist_thresh),
+                                title='manifold comparisons',
                                 filename='./images/{}_{}_{}_{}_eigenvector_division.png'.format(name, test_name, K, dist_thresh))
 
 if __name__ == '__main__':
