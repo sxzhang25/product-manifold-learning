@@ -75,6 +75,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
           ax.set_visible(False)
         else:
           v = eigenvectors[r * cols + c]
+          v /= np.linalg.norm(v)
           g = ax.scatter(data[:,0], data[:,1], marker="s", c=v)
           fig.colorbar(g, ax=ax)
           ax.set_aspect('equal', 'datalim')
@@ -90,6 +91,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
           ax.set_visible(False)
         else:
           v = eigenvectors[r * cols + c]
+          v /= np.linalg.norm(v)
           g = ax.scatter(data[:,0], data[:,1], data[:,2], marker="s", c=v)
           fig.colorbar(g, ax=ax)
           if labels is not None:
@@ -192,11 +194,11 @@ def main():
     plot_og_data(data, title='Original Data ({})'.format(name), filename='./images/{}_{}_original_data.png'.format(name, test_name))
 
     # plot eigenvectors
-    vecs = [phi[:,i] for i in range(1, n_eigenvectors)]
+    vecs = [phi[:,i] for i in range(n_eigenvectors)]
     eigenvectors_filename = './images/' + name + '_' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
     plot_eigenvectors(data_r,
                       vecs[:100],
-                      labels=[int(i) for i in range(1,n_eigenvectors)],
+                      labels=[int(i) for i in range(n_eigenvectors)],
                       title='Laplace Eigenvectors ({})'.format(name),
                       filename=eigenvectors_filename)
 
@@ -220,8 +222,8 @@ def main():
   plot_independent_eigenvectors(manifold1,
                                 manifold2,
                                 n_eigenvectors,
-                                title='manifold comparisons',
-                                filename='./images/{}_{}_{}_{}_eigenvector_division.png'.format(name, test_name, K, dist_thresh))
+                                title='manifold split',
+                                filename='./images/{}_{}_{}_eigenvector_division.png'.format(name, test_name, K))
 
 if __name__ == '__main__':
   main()

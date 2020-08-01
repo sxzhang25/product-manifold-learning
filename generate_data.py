@@ -27,17 +27,17 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
 
   if datatype=='line_line':
     # two line segments
-    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
-    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
+    line1_data = l1 * (np.random.rand(n_samples) + np.random.normal(scale=noise, size=n_samples))
+    line2_data = l2 * (np.random.rand(n_samples) + np.random.normal(scale=noise, size=n_samples))
     data = np.column_stack((line1_data, line2_data))
 
   elif datatype=='line_circle':
     # line segment and circle
-    line_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
+    line_data = l1 * (np.random.rand(n_samples) + np.random.normal(scale=noise, size=n_samples))
     circle_data = np.empty((n_samples,2))
     theta = 2 * np.pi * np.random.rand(n_samples)
-    circle_data[:,0] = (l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta)
-    circle_data[:,1] = (l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.sin(theta)
+    circle_data[:,0] = (l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
+    circle_data[:,1] = (l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
     data = np.column_stack((line_data, circle_data))
 
   elif datatype=='circle_circle':
@@ -45,22 +45,22 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
     circleA_data = np.empty((n_samples,2))
     circleB_data = np.empty((n_samples,2))
     for i in range(n_samples):
-      theta = 2 * np.pi * np.random.rand()
-      circleA_data[i,:] = [(l1 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l1 * np.sin(theta)]
-      theta = 2 * np.pi * np.random.rand()
-      circleB_data[i,:] = [(l2 + noise * (2 * np.random.rand(n_samples) - 1)) * np.cos(theta), l2 * np.sin(theta)]
+      theta = 2 * np.pi * np.random.rand(scale=noise)
+      circleA_data[i,:] = [(l1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta), l1 * np.sin(theta)]
+      theta = 2 * np.pi * np.random.normal(scale=noise)
+      circleB_data[i,:] = [(l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta), l2 * np.sin(theta)]
     data = np.column_stack((circleA_data, circleB_data))
 
   elif datatype=='rect_circle':
     # rectangle and circle
-    line1_data = l1 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
-    line2_data = l2 * (np.random.rand(n_samples) + noise * (2 * np.random.rand(n_samples) - 1))
+    line1_data = l1 * (np.random.rand(n_samples) + noise * np.random.normal(scale=noise, size=n_samples))
+    line2_data = l2 * (np.random.rand(n_samples) + noise * np.random.normal(scale=noise, size=n_samples))
     rect_data = np.column_stack((line1_data, line2_data))
 
     circle_data = np.empty((n_samples,2))
     for i in range(n_samples):
-      theta = 2 * np.pi * np.random.rand()
-      circle_data[i,:] = [(l1 + noise * (2 * np.random.rand() - 1)) * np.cos(theta), l1 * np.sin(theta)]
+      theta = 2 * np.pi * np.random.rand(scale=noise)
+      circle_data[i,:] = [(l1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta), l1 * np.sin(theta)]
     data = np.column_stack((rect_data, circle_data))
 
   else:
@@ -197,7 +197,6 @@ def split_eigenvectors(best_matches, dists, n_eigenvectors, K):
 
   # perform spectral clustering based on independent vectors
   independent = np.where(votes>=K)[0]
-  print("\n", independent)
   W_ = np.zeros((len(independent), len(independent)))
   for i in range(W_.shape[0]):
     for j in range(W_.shape[1]):
@@ -206,9 +205,8 @@ def split_eigenvectors(best_matches, dists, n_eigenvectors, K):
       else:
         W_[i][j] = W[independent[i]][independent[j]]
 
-  W_ = np.exp(-W_**2 / 2)
+  W_ = np.exp(-W_**2)
   np.set_printoptions(precision=3)
-  print(W_)
   clustering = SpectralClustering(n_clusters=2,  # default: 2
                                   affinity='precomputed',
                                   assign_labels='kmeans',
