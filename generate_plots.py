@@ -1,6 +1,7 @@
 import time
 import sys
 import json
+import pickle
 
 import numpy as np
 import matplotlib.colors as colors
@@ -75,6 +76,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
           ax.set_visible(False)
         else:
           v = eigenvectors[r * cols + c]
+          v /= np.linalg.norm(v)
           g = ax.scatter(data[:,0], data[:,1], marker="s", c=v)
           fig.colorbar(g, ax=ax)
           ax.set_aspect('equal', 'datalim')
@@ -90,6 +92,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
           ax.set_visible(False)
         else:
           v = eigenvectors[r * cols + c]
+          v /= np.linalg.norm(v)
           g = ax.scatter(data[:,0], data[:,1], data[:,2], marker="s", c=v)
           fig.colorbar(g, ax=ax)
           if labels is not None:
@@ -155,7 +158,6 @@ def main():
   print('Parameters...')
   print(params)
 
-  name = params['name']
   test_name = params['test_name']
   precomputed = params['precomputed']
   l1 = params['l1']
@@ -167,14 +169,18 @@ def main():
   n_comps = params['n_comps']
   n_eigenvectors = params['n_eigenvectors']
   K = params['K']
-  dist_thresh = params['dist_thresh']
 
-  # load data
-  data_filename = './data/data_' + name + '.dat'
-  phi_filename = './data/phi_' + name + '.dat'
+  # load info pickle file
+  # data_filename = './data/data_' + name + '.dat'
+  # phi_filename = './data/phi_' + name + '.dat'
+  # data = np.loadtxt(data_filename)
+  # phi = np.loadtxt(phi_filename)
 
-  data = np.loadtxt(data_filename)
-  phi = np.loadtxt(phi_filename)
+  with open('./data/{}_info.pickle'.format(test_name), 'rb') as handle:
+    info = pickle.load(handle)
+  data = info['data']
+  phi = info['phi']
+
 
   if datatype == 'line_circle':
     data_r = np.zeros((data.shape[0],2))
@@ -190,20 +196,22 @@ def main():
 
   if not precomputed:
     # plot original data
-    plot_og_data(data, title='Original Data ({})'.format(name), filename='./images/{}_{}_original_data.png'.format(name, test_name))
+    plot_og_data(data, title='Original Data', filename='./images/{}_original_data.png'.format(test_name))
 
     # plot eigenvectors
-    vecs = [phi[:,i] for i in range(1, n_eigenvectors+1)]
-    eigenvectors_filename = './images/' + name + '_' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
+    vecs = [phi[:,i] for i in range(n_eigenvectors)]
+    eigenvectors_filename = './images/' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
     plot_eigenvectors(data_r,
                       vecs[:100],
-                      labels=[int(i) for i in range(1,n_eigenvectors+1)],
-                      title='Laplace Eigenvectors ({})'.format(name),
+                      labels=[int(i) for i in range(n_eigenvectors)],
+                      title='Laplace Eigenvectors',
                       filename=eigenvectors_filename)
 
   # plot best matches
-  manifold1 = np.loadtxt('./data/manifold1_{}_{}.dat'.format(name, test_name))
-  manifold2 = np.loadtxt('./data/manifold2_{}_{}.dat'.format(name, test_name))
+  # manifold1 = np.loadtxt('./data/manifold1_{}_{}.dat'.format(name, test_name))
+  # manifold2 = np.loadtxt('./data/manifold2_{}_{}.dat'.format(name, test_name))
+  manifold1 = info['manifold1']
+  manifold2 = info['manifold2']
 
   vecs1 = [phi[:,int(i)] for i in manifold1]
   vecs2 = [phi[:,int(i)] for i in manifold2]
@@ -211,18 +219,18 @@ def main():
   plot_eigenvectors(data_r,
                     vecs1,
                     labels=[int(i) for i in manifold1],
-                    filename='./images/manifold1_{}_{}.png'.format(name, test_name))
+                    filename='./images/manifold1_{}.png'.format(test_name))
 
   plot_eigenvectors(data_r,
                     vecs2,
                     labels=[int(i) for i in manifold2],
-                    filename='./images/manifold2_{}_{}.png'.format(name, test_name))
+                    filename='./images/manifold2_{}.png'.format(test_name))
 
   plot_independent_eigenvectors(manifold1,
                                 manifold2,
                                 n_eigenvectors,
-                                title='d={}'.format(dist_thresh),
-                                filename='./images/{}_{}_{}_{}_eigenvector_division.png'.format(name, test_name, K, dist_thresh))
+                                title='manifold split',
+                                filename='./images/{}_{}_eigenvector_division.png'.format(test_name, K))
 
 if __name__ == '__main__':
   main()
