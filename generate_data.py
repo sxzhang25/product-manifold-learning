@@ -1,6 +1,7 @@
 import time
 import sys
 import json
+import pickle
 
 import numpy as np
 import scipy
@@ -73,16 +74,13 @@ def generate_data(l1, l2, n_samples=10000, seed=0, datatype='line_line', noise=0
 # COMPUTE EIGENVECTORS
 ###
 
-def calc_W(data, sigma=None):
+def calc_W(data, sigma):
   '''
   calculates the weight matrix W
   '''
 
   t0 = time.perf_counter()
   pairwise_sq_dists = squareform(pdist(data, 'sqeuclidean'))
-
-  if sigma is None:
-    sigma = get_sigma(data.shape[0])
 
   W = np.exp(-pairwise_sq_dists / sigma)
   t1 = time.perf_counter()
@@ -106,6 +104,7 @@ def calc_vars(data, W, sigma, n_comps=100):
                                 random_state=None)
   phi = V / V[:,0][:,None]
   Sigma = -np.log(Sigma) / sigma
+  print(Sigma)
 
   t1 = time.perf_counter()
   print("  Calculating phi, Sigma took %2.2f seconds" % (t1-t0))
@@ -226,7 +225,6 @@ def main():
   print("\nParameters...")
   print(params)
 
-  name = params['name']
   test_name = params['test_name']
   precomputed = params['precomputed']
   l1 = np.sqrt(np.pi) + params['l1']
@@ -241,42 +239,50 @@ def main():
   lambda_thresh = params['lambda_thresh']
   K = params['K']
 
-  # filenames
-  data_filename = './data/data_' + name + '.dat'  # switch to path containing data
-  phi_filename = './data/phi_' + name + '.dat'
-  Sigma_filename = './data/Sigma_' + name + '.dat'
-  matches_filename = './data/matches_' + name + '.dat'
-  dists_filename = './data/dists_' + name + '.dat'
-
   if precomputed:
+    info = pickle.load(open("./data/{}_info.pickle".format(test_name), "wb"))
+
     # load data
     print("\nLoading data...")
-    data = np.loadtxt(data_filename)[1:,:]
+    # data = np.loadtxt(data_filename)
+    data = info['data']
 
     print("\nLoading phi, Sigma...")
-    phi = np.loadtxt(phi_filename)
-    Sigma = np.loadtxt(Sigma_filename)
+    # phi = np.loadtxt(phi_filename)
+    # Sigma = np.loadtxt(Sigma_filename)
+    phi = info['phi']
+    Sigma = info['Sigma']
 
     print("\nLoading matches and distances...")
-    matches = np.loadtxt(matches_filename)
-    dists = np.loadtxt(dists_filename)
+    # matches = np.loadtxt(matches_filename)
+    # dists = np.loadtxt(dists_filename)
+    matches = info['matches']
+    dists = info['dists']
   else:
+    # create a dictionary to store all information in
+    info = {}
+
     # generate random data
     print("\nGenerating random data...")
     data = generate_data(l1, l2, noise=noise, n_samples=n_samples, seed=seed, datatype=datatype)
-    np.savetxt(data_filename, data)
+    # np.savetxt(data_filename, data)
+    info['data'] = data
 
     # compute eigenvectors
     print("\nComputing eigenvectors...")
-    W = calc_W(data, sigma=sigma)
+    W = calc_W(data, sigma)
     phi, Sigma = calc_vars(data, W, sigma, n_comps=n_comps)
 
-    np.savetxt(phi_filename, phi)
-    np.savetxt(Sigma_filename, Sigma)
+    # np.savetxt(phi_filename, phi)
+    # np.savetxt(Sigma_filename, Sigma)
+    info['phi'] = phi
+    info['Sigma'] = Sigma
 
   # find triplets
   print("\nComputing triplets...")
   matches, dists = find_triplets(phi, Sigma, n_comps, lambda_thresh)
+  info['matches'] = matches
+  info['dists'] = dists
 
   # split eigenvectors
   print("\nSplitting eigenvectors...")
@@ -292,8 +298,14 @@ def main():
   print("Manifold #1: ", manifold1)
   print("Manifold #2: ", manifold2)
 
-  np.savetxt('./data/manifold1_{}_{}.dat'.format(name, test_name), manifold1)
-  np.savetxt('./data/manifold2_{}_{}.dat'.format(name, test_name), manifold2)
+  # np.savetxt('./data/manifold1_{}_{}.dat'.format(name, test_name), manifold1)
+  # np.savetxt('./data/manifold2_{}_{}.dat'.format(name, test_name), manifold2)
+  info['manifold1'] = manifold1
+  info['manifold2'] = manifold2
+
+  # save info dictionary using pickle
+  with open('./data/{}_info.pickle'.format(test_name), 'wb') as handle:
+    pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
