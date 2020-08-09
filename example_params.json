@@ -1,1 +1,1 @@
-{"name": "line_line", "test_name": "original", "precomputed": false, "l1": 2, "l2": 1, "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "line_line", "sigma": null, "n_comps": 100, "n_eigenvectors": 100, "eps": 10e-3, "K": 1, "dist_thresh": 0.15}
+{"test_name": "line_line_original", "precomputed": false, "l1": 2, "l2": 1, "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "line_line", "sigma": 0.5, "n_comps": 100, "n_eigenvectors": 100, "lambda_thresh": 0.1, "K": 4}
