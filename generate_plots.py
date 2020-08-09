@@ -170,12 +170,7 @@ def main():
   n_eigenvectors = params['n_eigenvectors']
   K = params['K']
 
-  # load info pickle file
-  # data_filename = './data/data_' + name + '.dat'
-  # phi_filename = './data/phi_' + name + '.dat'
-  # data = np.loadtxt(data_filename)
-  # phi = np.loadtxt(phi_filename)
-
+  # load pickle file containing all info
   with open('./data/{}_info.pickle'.format(test_name), 'rb') as handle:
     info = pickle.load(handle)
   data = info['data']
@@ -208,8 +203,6 @@ def main():
                       filename=eigenvectors_filename)
 
   # plot best matches
-  # manifold1 = np.loadtxt('./data/manifold1_{}_{}.dat'.format(name, test_name))
-  # manifold2 = np.loadtxt('./data/manifold2_{}_{}.dat'.format(name, test_name))
   manifold1 = info['manifold1']
   manifold2 = info['manifold2']
 

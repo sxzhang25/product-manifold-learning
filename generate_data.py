@@ -244,18 +244,13 @@ def main():
 
     # load data
     print("\nLoading data...")
-    # data = np.loadtxt(data_filename)
     data = info['data']
 
     print("\nLoading phi, Sigma...")
-    # phi = np.loadtxt(phi_filename)
-    # Sigma = np.loadtxt(Sigma_filename)
     phi = info['phi']
     Sigma = info['Sigma']
 
     print("\nLoading matches and distances...")
-    # matches = np.loadtxt(matches_filename)
-    # dists = np.loadtxt(dists_filename)
     matches = info['matches']
     dists = info['dists']
   else:
@@ -265,7 +260,6 @@ def main():
     # generate random data
     print("\nGenerating random data...")
     data = generate_data(l1, l2, noise=noise, n_samples=n_samples, seed=seed, datatype=datatype)
-    # np.savetxt(data_filename, data)
     info['data'] = data
 
     # compute eigenvectors
@@ -273,8 +267,6 @@ def main():
     W = calc_W(data, sigma)
     phi, Sigma = calc_vars(data, W, sigma, n_comps=n_comps)
 
-    # np.savetxt(phi_filename, phi)
-    # np.savetxt(Sigma_filename, Sigma)
     info['phi'] = phi
     info['Sigma'] = Sigma
 
@@ -298,8 +290,6 @@ def main():
   print("Manifold #1: ", manifold1)
   print("Manifold #2: ", manifold2)
 
-  # np.savetxt('./data/manifold1_{}_{}.dat'.format(name, test_name), manifold1)
-  # np.savetxt('./data/manifold2_{}_{}.dat'.format(name, test_name), manifold2)
   info['manifold1'] = manifold1
   info['manifold2'] = manifold2
 
