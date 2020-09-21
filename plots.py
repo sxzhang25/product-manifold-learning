@@ -38,7 +38,7 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
     fig, axs = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows))
     for r in range(rows):
       for c in range(cols):
-        ax = axs[r, c]
+        ax = axs[r, c] if len(eigenvectors) > 1 else axs
         index = r * cols + c
         if index >= len(eigenvectors):
           ax.set_visible(False)
