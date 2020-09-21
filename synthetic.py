@@ -2,9 +2,10 @@ import time
 import sys
 import json
 import pickle
+from itertools import combinations
 
 import numpy as np
-import scipy
+# import scipy
 from scipy.spatial.distance import pdist, squareform
 from sklearn.utils.extmath import randomized_svd
 from sklearn.cluster import SpectralClustering
@@ -21,11 +22,10 @@ from plots import *
 # the Laplacian, eigenvalues, and independent manifolds of the data
 ###
 
-def generate_data(l1, l2, n_samples, datatype='line_line', seed=0, noise=0.05):
+def generate_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.05):
   '''
   generates uniform random data
-  l1: the first length parameter
-  l2: the second length parameter
+  dimensions: the dimensions of the data
   num_samples: the number of samples to generate
   seed: the random seed for generating the data
   type: the type of data to generate
@@ -33,8 +33,9 @@ def generate_data(l1, l2, n_samples, datatype='line_line', seed=0, noise=0.05):
 
   np.random.seed(seed)
 
-  if datatype=='line_line':
-    # two line segments
+  if datatype=='rectangle':
+    # rectangle
+    l1, l2 = dimensions
     line1_data = l1 * (np.random.rand(n_samples) +  \
                        np.random.normal(scale=noise, size=n_samples))
     line2_data = l2 * (np.random.rand(n_samples) +  \
@@ -42,7 +43,8 @@ def generate_data(l1, l2, n_samples, datatype='line_line', seed=0, noise=0.05):
     data = np.column_stack((line1_data, line2_data))
 
   elif datatype=='line_circle':
-    # line segment and circle
+    # hollow cylinder
+    l1, l2 = dimensions
     line_data = l1 * (np.random.rand(n_samples) +  \
                       np.random.normal(scale=noise, size=n_samples))
     circle_data = np.empty((n_samples,2))
@@ -51,33 +53,16 @@ def generate_data(l1, l2, n_samples, datatype='line_line', seed=0, noise=0.05):
     circle_data[:,1] = (l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
     data = np.column_stack((line_data, circle_data))
 
-  elif datatype=='circle_circle':
-    # circle and circle
-    circleA_data = np.empty((n_samples,2))
-    circleB_data = np.empty((n_samples,2))
-    for i in range(n_samples):
-      theta = 2 * np.pi * np.random.rand(scale=noise)
-      circleA_data[i,:] = [(l1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta),
-                           l1 * np.sin(theta)]
-      theta = 2 * np.pi * np.random.normal(scale=noise)
-      circleB_data[i,:] = [(l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta),
-                           l2 * np.sin(theta)]
-    data = np.column_stack((circleA_data, circleB_data))
-
-  elif datatype=='rect_circle':
-    # rectangle and circle
-    line1_data = l1 * (np.random.rand(n_samples) + \
-                       noise * np.random.normal(scale=noise, size=n_samples))
-    line2_data = l2 * (np.random.rand(n_samples) + \
-                       noise * np.random.normal(scale=noise, size=n_samples))
-    rect_data = np.column_stack((line1_data, line2_data))
-
-    circle_data = np.empty((n_samples,2))
-    for i in range(n_samples):
-      theta = 2 * np.pi * np.random.rand(scale=noise)
-      circle_data[i,:] = [(l1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta),
-                          l1 * np.sin(theta)]
-    data = np.column_stack((rect_data, circle_data))
+  elif datatype=='cube':
+    # cube
+    l1, l2, l3 = dimensions
+    line1_data = l1 * (np.random.rand(n_samples) +  \
+                       np.random.normal(scale=noise, size=n_samples))
+    line2_data = l2 * (np.random.rand(n_samples) +  \
+                       np.random.normal(scale=noise, size=n_samples))
+    line3_data = l3 * (np.random.rand(n_samples) +  \
+                       np.random.normal(scale=noise, size=n_samples))
+    data = np.column_stack((line1_data, line2_data, line3_data))
 
   else:
     print('Error: invalid data type')
@@ -120,7 +105,7 @@ def calc_W(data, sigma):
   W = np.exp(-pairwise_sq_dists / sigma)
   return W
 
-def calc_vars(data, W, sigma, n_comps=100):
+def calc_vars(data, W, sigma, n_eigenvectors=100):
   '''
   calculates phi, psi, and Sigma
   '''
@@ -129,7 +114,7 @@ def calc_vars(data, W, sigma, n_comps=100):
   v = np.sqrt(W @ ones)
   S = W / np.outer(v, v)
   V, Sigma, VT = randomized_svd(S,
-                                n_components=n_comps,
+                                n_components=n_eigenvectors,
                                 n_iter=5,
                                 random_state=None)
   phi = V / V[:,0][:,None]
@@ -137,7 +122,7 @@ def calc_vars(data, W, sigma, n_comps=100):
   return phi, Sigma
 
 ###
-# FIND BEST EIGENVECTOR TRIPLETS
+# FIND BEST EIGENVECTOR COMBOS
 ###
 
 def calculate_score(v_i, v_j):
@@ -153,36 +138,46 @@ def calculate_score(v_i, v_j):
   score = np.linalg.norm((v_i - v_j), ord=2)
   return score
 
-def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
+def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3):
   best_matches = {}
   min_dists = {}
-  for k in range(2, n_comps):
+  for k in range(n_comps, phi.shape[1]):
+    # show progress
+    if (k % 10 == 0):
+      sys.stdout.write('\r')
+      sys.stdout.write("[%-20s] %d%%" % ('='*int(20*k/phi.shape[1]), 100*k/phi.shape[1]))
+      sys.stdout.flush()
+
     v_k = phi[:,k]
     lambda_k = Sigma[k]
     min_dist = np.inf
-    best_pair = [0, 1]
-    for i in range(1, k):
-      for j in range(i+1, k):
-        v_i = phi[:,i]
-        v_j = phi[:,j]
-        v_ij = v_i * v_j
-        lambda_ij = Sigma[i] + Sigma[j]
-        eig_d = abs(lambda_k - lambda_ij)
-        if eig_d < lambda_thresh:
+    best_match = []
+
+    for m in range(1, n_comps + 1):
+      for combo in list(combinations(np.arange(1, k), m)):
+        combo = list(combo)
+        lambda_sum = np.sum(Sigma[combo])
+        lambda_diff = abs(lambda_k - lambda_sum)
+        if lambda_diff < lambda_thresh:
+          # get product of proposed base eigenvectors
+          v_combo = np.ones(phi.shape[0])
+          for i in combo:
+            v_combo *= phi[:,i]
+
           # test with positive
-          d = calculate_score(v_ij, v_k)
+          d = calculate_score(v_combo, v_k)
           if d < min_dist:
-            best_pair = [i, j]
+            best_match = combo
             min_dist = d
 
           # test with negative
-          d = calculate_score(v_ij, -v_k)
+          d = calculate_score(v_combo, -v_k)
           if d < min_dist:
-            best_pair = [i, j]
+            best_match = combo
             min_dist = d
 
-    if 0 not in best_pair:
-      best_matches[k] = best_pair
+    if len(best_match) > 0:
+      best_matches[k] = list(best_match)
       min_dists[k] = min_dist
 
   return best_matches, min_dists
@@ -191,32 +186,30 @@ def find_triplets(phi, Sigma, n_comps, lambda_thresh=10e-3):
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, dists, n_eigenvectors, K, n_clusters=2):
+def split_eigenvectors(best_matches, dists, n_eigenvectors, K, n_comps=2):
   '''
   clusters eigenvectors into two separate groups
   '''
-  # sort triplets from smallest distance to largest distance (quality of triplet)
-  triplets_list = []
+  # sort combos from smallest distance to largest distance (quality of combo)
+  combos_list = []
   sorted_dists = []
   for match in list(best_matches):
-    triplets_list.append([best_matches[match][0], best_matches[match][1], match])
+    combo = best_matches[match]
+    combo.append(match)
+    combos_list.append(combo)
     sorted_dists.append(dists[match])
 
-  print("\nTriplets...")
-  for triplet in triplets_list:
-    print(triplet)
-
   votes = np.zeros(n_eigenvectors)
-  mixtures = set() # oon't do suppression here (use simpler voting scheme)
-
   W = np.zeros((n_eigenvectors, n_eigenvectors))
-  for triplet in triplets_list:
-    v_i, v_j, v_k = triplet
-    W[v_i][v_j] += 1
-    W[v_j][v_i] += 1
-    votes[v_i] += 1
-    votes[v_j] += 1
 
+  print("\nCombos...")
+  for combo in combos_list:
+    print(combo)
+    for pair in list(combinations(combo[:-1], 2)):
+      W[pair[0]][pair[1]] += 50
+      W[pair[1]][pair[0]] += 50
+      votes[pair[0]] += 1
+      votes[pair[1]] += 1
   print("\nVotes:\n", votes)
 
   # perform spectral clustering based on independent vectors
@@ -231,7 +224,7 @@ def split_eigenvectors(best_matches, dists, n_eigenvectors, K, n_clusters=2):
 
   W_ = np.exp(-W_**2)
   np.set_printoptions(precision=3)
-  clustering = SpectralClustering(n_clusters=n_clusters,  # default: 2
+  clustering = SpectralClustering(n_clusters=n_comps,  # default: 2
                                   affinity='precomputed',
                                   assign_labels='kmeans',
                                   random_state=0).fit(W_)
@@ -257,8 +250,8 @@ def main():
 
   test_name = params['test_name']
   precomputed = params['precomputed']
-  l1 = np.sqrt(np.pi) + params['l1']
-  l2 = params['l2']
+  dimensions = params['dimensions']
+  dimensions[0] = np.sqrt(np.pi) + dimensions[0]
   noise = params['noise']
   n_samples = params['n_samples']
   seed = params['seed']
@@ -289,35 +282,48 @@ def main():
     print("\nLoading matches and distances...")
     matches = info['matches']
     dists = info['dists']
+
+    if datatype == 'line_circle':
+      data_r = np.zeros((data.shape[0],2))
+      data_r[:,0] = data[:,0]
+      data_r[:,1] = np.arctan2(data[:,2], data[:,1])
+    else:
+      data_r = data
   else:
     # create a dictionary to store all information in
     info = {}
 
     # generate random data
     print("\nGenerating random data...")
-    data = generate_data(l1,
-                         l2,
+    data = generate_data(dimensions,
                          noise=noise,
                          n_samples=n_samples,
                          datatype=datatype,
                          seed=seed)
     info['data'] = data
 
+    if datatype == 'line_circle':
+      data_r = np.zeros((data.shape[0],2))
+      data_r[:,0] = data[:,0]
+      data_r[:,1] = np.arctan2(data[:,2], data[:,1])
+    else:
+      data_r = data
+
     # compute eigenvectors
     print("\nComputing eigenvectors...")
     t0 = time.perf_counter()
-    W = calc_W(data, sigma)
-    phi, Sigma = calc_vars(data, W, sigma, n_comps=n_comps)
+    W = calc_W(data_r, sigma)
+    phi, Sigma = calc_vars(data_r, W, sigma, n_eigenvectors=n_eigenvectors)
     t1 = time.perf_counter()
     print("  Time: %2.2f seconds" % (t1-t0))
 
     info['phi'] = phi
     info['Sigma'] = Sigma
 
-  # find triplets
-  print("\nComputing triplets...")
+  # find combos
+  print("\nComputing combos...")
   t0 = time.perf_counter()
-  matches, dists = find_triplets(phi, Sigma, n_comps, lambda_thresh)
+  matches, dists = find_combos(phi, Sigma, n_comps, lambda_thresh)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
   info['matches'] = matches
@@ -326,22 +332,17 @@ def main():
   # split eigenvectors
   print("\nSplitting eigenvectors...")
   t0 = time.perf_counter()
-  labels = split_eigenvectors(matches, dists, n_eigenvectors, K)
+  labels = split_eigenvectors(matches, dists, n_eigenvectors, K, n_comps=n_comps)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
-  if labels[1][0] == 0:
-    manifold1 = labels[0][np.where(labels[1]==0)[0]]
-    manifold2 = labels[0][np.where(labels[1]==1)[0]]
-  else:
-    manifold2 = labels[0][np.where(labels[1]==0)[0]]
-    manifold1 = labels[0][np.where(labels[1]==1)[0]]
+  manifolds = []
+  for m in range(n_comps):
+    manifold = labels[0][np.where(labels[1]==m)[0]]
+    manifolds.append(manifold)
+    print("Manifold #{}".format(m), manifold)
 
-  print("Manifold #1: ", manifold1)
-  print("Manifold #2: ", manifold2)
-
-  info['manifold1'] = manifold1
-  info['manifold2'] = manifold2
+  info['manifolds'] = manifolds
 
   # save info dictionary using pickle
   with open('./data/{}_info.pickle'.format(test_name), 'wb') as handle:
@@ -352,18 +353,6 @@ def main():
   ###
 
   if generate_plots:
-    if datatype == 'line_circle':
-      data_r = np.zeros((data.shape[0],2))
-      data_r[:,0] = data[:,0]
-      data_r[:,1] = np.arctan2(data[:,2], data[:,1])
-    elif datatype == 'rect_circle':
-      data_r = np.zeros((data.shape[0],3))
-      data_r[:,0] = data[:,0]
-      data_r[:,1] = data[:,1]
-      data_r[:,2] = np.arctan2(data[:,3], data[:,2])
-    else:
-      data_r = data
-
     if not precomputed:
       # plot original data
       plot_data(data,
@@ -374,33 +363,24 @@ def main():
       vecs = [phi[:,i] for i in range(n_eigenvectors)]
       eigenvectors_filename = './images/' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
       plot_eigenvectors(data_r,
-                        vecs[:100],
+                        vecs[:25],
                         labels=[int(i) for i in range(n_eigenvectors)],
                         title='Laplace Eigenvectors',
                         filename=eigenvectors_filename)
 
     # plot best matches
-    manifold1 = info['manifold1']
-    manifold2 = info['manifold2']
+    manifolds = info['manifolds']
 
-    vecs1 = [phi[:,int(i)] for i in manifold1]
-    vecs2 = [phi[:,int(i)] for i in manifold2]
+    independent_vecs = []
+    for manifold in manifolds:
+      vecs = [phi[:,int(i)] for i in manifold]
+      independent_vecs.append(vecs)
 
-    plot_eigenvectors(data_r,
-                      vecs1,
-                      labels=[int(i) for i in manifold1],
-                      filename='./images/manifold1_{}.png'.format(test_name))
-
-    plot_eigenvectors(data_r,
-                      vecs2,
-                      labels=[int(i) for i in manifold2],
-                      filename='./images/manifold2_{}.png'.format(test_name))
-
-    plot_independent_eigenvectors(manifold1,
-                                  manifold2,
-                                  n_eigenvectors,
-                                  title='manifold split',
-                                  filename='./images/{}_{}_eigenvector_division.png'.format(test_name, K))
+    for i,vecs in enumerate(independent_vecs):
+      plot_eigenvectors(data_r,
+                        vecs,
+                        labels=[int(j) for j in manifolds[i]],
+                        filename='./images/manifold{}_{}.png'.format(i, test_name))
 
 if __name__ == '__main__':
   main()

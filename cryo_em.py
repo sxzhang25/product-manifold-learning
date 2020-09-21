@@ -6,7 +6,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
-from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from fakekv import *
@@ -32,14 +32,17 @@ def generate_data(n_samples, x=10, y=10, var=1, seed=0):
   seed: the random seed
   '''
   np.random.seed(seed)
-  data = np.zeros((n_samples, L, L))
+  image_data = np.zeros((n_samples, L, L))
+  raw_data = np.zeros((n_samples, 3))
   mol = FakeKV()
   for i in range(n_samples):
     # show progress
-    if (i % 100 == 0):
-      print(i, end=" ", flush=True)
+    if (i % 10 == 0):
+      sys.stdout.write('\r')
+      sys.stdout.write("[%-20s] %d%%" % ('='*int(20*i/n_samples), 100*i/n_samples))
+      sys.stdout.flush()
 
-    angle = 360 * np.random.random()
+    angle = 90 * np.random.random()
     shift_x = x * (2 * np.random.random() - 1)
     shift_y = y * (2 * np.random.random() - 1)
     vol = mol.generate(angle=angle, shift=(shift_x, shift_y))
@@ -52,9 +55,10 @@ def generate_data(n_samples, x=10, y=10, var=1, seed=0):
     gauss = np.random.normal(0, var**0.5, (L,L))
     noisy = projz + gauss
 
-    data[i,:,:] = noisy
+    image_data[i,:,:] = noisy
+    raw_data[i,:] = [shift_x, shift_y, angle]
 
-  return data
+  return image_data, raw_data
 
 def downsample_data(data, l):
   '''
@@ -114,91 +118,54 @@ def main():
 
     # load data
     print("\nLoading data...")
-    data = info['data']
-
-    # downsample data
-    print("\nDownsampling data...")
-    t0 = time.perf_counter()
-    data = downsample_data(data, 16)
-    data = np.reshape(data, (data.shape[0], -1))
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
-
-    # apply dimensionality reduction to the data
-    print("\nApplying PCA and scaling...")
-    t0 = time.perf_counter()
-    transformer = KernelPCA(n_components=8, kernel='linear')
-    data = transformer.fit_transform(data)
-
-    # standard scale each channel
-    scaler = StandardScaler()
-    data = np.reshape(data, (-1, data.shape[1]))
-    data = scaler.fit_transform(data)
-    data = np.reshape(data, (n_samples, -1))
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
-
-    # load phi, Sigma
-    print("\nLoading phi, Sigma...")
-    phi = info['phi']
-    Sigma = info['Sigma']
-
-    # get triplets
-    print("\nLoading triplets...")
-    matches = info['matches']
-    dists = info['dists']
-
+    image_data = info['image_data']
+    raw_data = info['raw_data']
+    # plot_data(image_data[:9])
   else:
     # create a dictionary to store all information in
     info = {}
 
     # generate random data
     print("\nGenerating random data...")
-    data = generate_data(n_samples, x=x, y=y, var=var)
-    info['data'] = data
+    image_data, raw_data = generate_data(n_samples, x=x, y=y, var=var)
+    info['image_data'] = image_data
+    info['raw_data'] = raw_data
 
-    # downsample data
-    print("\nDownsampling data...")
-    t0 = time.perf_counter()
-    data = downsample_data(data, 16)
-    data = np.reshape(data, (data.shape[0], -1))
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
+  # apply PCA and standard scaling to the data
+  print("\nApplying PCA and standard scaling...")
+  t0 = time.perf_counter()
+  image_data = np.reshape(image_data, (n_samples, -1))
+  pca = PCA(n_components=16)
+  image_data = pca.fit_transform(image_data)
 
-    # apply dimensionality reduction to the data
-    print("\nApplying PCA and scaling...")
-    t0 = time.perf_counter()
-    transformer = KernelPCA(n_components=8, kernel='linear')
-    data = transformer.fit_transform(data)
+  # standard scale each channel
+  scaler = StandardScaler()
+  image_data = np.reshape(image_data, (-1, image_data.shape[1]))
+  image_data = scaler.fit_transform(image_data)
+  image_data = np.reshape(image_data, (n_samples, -1))
+  t1 = time.perf_counter()
+  print("  Time: %2.2f seconds" % (t1-t0))
 
-    # standard scale each channel
-    scaler = StandardScaler()
-    data = np.reshape(data, (-1, data.shape[1]))
-    data = scaler.fit_transform(data)
-    data = np.reshape(data, (n_samples, -1))
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
+  # compute eigenvectors
+  print("\nComputing eigenvectors...")
+  t0 = time.perf_counter()
+  W = syn.calc_W(image_data, sigma)
+  phi, Sigma = syn.calc_vars(image_data, W, sigma, n_eigenvectors=n_eigenvectors)
+  t1 = time.perf_counter()
+  print("  Time: %2.2f seconds" % (t1-t0))
 
-    # compute eigenvectors
-    print("\nComputing eigenvectors...")
-    t0 = time.perf_counter()
-    W = syn.calc_W(data, sigma)
-    phi, Sigma = syn.calc_vars(data, W, sigma, n_comps=n_comps)
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
+  info['phi'] = phi
+  info['Sigma'] = Sigma
 
-    info['phi'] = phi
-    info['Sigma'] = Sigma
+  # find combos
+  print("\nComputing combos...")
+  t0 = time.perf_counter()
+  matches, dists = syn.find_combos(phi, Sigma, n_comps, lambda_thresh)
+  t1 = time.perf_counter()
+  print("  Time: %2.2f seconds" % (t1-t0))
 
-    # find triplets
-    print("\nComputing triplets...")
-    t0 = time.perf_counter()
-    matches, dists = syn.find_triplets(phi, Sigma, n_comps, lambda_thresh)
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
-
-    info['matches'] = matches
-    info['dists'] = dists
+  info['matches'] = matches
+  info['dists'] = dists
 
   # split eigenvectors
   print("\nSplitting eigenvectors...")
@@ -207,22 +174,17 @@ def main():
                                   dists,
                                   n_eigenvectors,
                                   K,
-                                  n_clusters=2)
+                                  n_comps=n_comps)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
-  if labels[1][0] == 0:
-    manifold1 = labels[0][np.where(labels[1]==0)[0]]
-    manifold2 = labels[0][np.where(labels[1]==1)[0]]
-  else:
-    manifold2 = labels[0][np.where(labels[1]==0)[0]]
-    manifold1 = labels[0][np.where(labels[1]==1)[0]]
+  manifolds = []
+  for m in range(n_comps):
+    manifold = labels[0][np.where(labels[1]==m)[0]]
+    manifolds.append(manifold)
+    print("Manifold #{}".format(m), manifold)
 
-  print("Manifold #1: ", manifold1)
-  print("Manifold #2: ", manifold2)
-
-  info['manifold1'] = manifold1
-  info['manifold2'] = manifold2
+  info['manifolds'] = manifolds
 
   # save info dictionary using pickle
   print("Saving data...")
@@ -231,26 +193,41 @@ def main():
   print("Done")
 
   # plot eigenvectors
-  vecs = [phi[:,i] for i in range(n_eigenvectors)]
-  eigenvectors_filename = './images/' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
-  plot_eigenvectors(data[:,:3],
-                             vecs[:20],
-                             labels=[int(i) for i in range(n_eigenvectors)],
-                             title='Laplace Eigenvectors',
-                             filename=eigenvectors_filename)
+  if generate_plots:
+    vecs = [phi[:,i] for i in range(n_eigenvectors)]
+    eigenvectors_filename = './images/' + test_name + '_eigenvalues.png'
 
-  vecs1 = [phi[:,int(i)] for i in manifold1]
-  vecs2 = [phi[:,int(i)] for i in manifold2]
+    plot_eigenvectors(raw_data,
+                      vecs[:25],
+                      labels=[int(i) for i in range(n_eigenvectors)],
+                      title='Laplace Eigenvectors',
+                      filename=eigenvectors_filename )
 
-  plot_eigenvectors(data,
-                    vecs1,
-                    labels=[int(i) for i in manifold1],
-                    filename='./images/manifold1_{}.png'.format(test_name))
+    # plot best matches
+    manifolds = info['manifolds']
 
-  plot_eigenvectors(data,
-                    vecs2,
-                    labels=[int(i) for i in manifold1],
-                    filename='./images/manifold2_{}.png'.format(test_name))
+    independent_vecs = []
+    for manifold in manifolds:
+      vecs = [phi[:,int(i)] for i in manifold]
+      independent_vecs.append(vecs)
+
+    for i,vecs in enumerate(independent_vecs):
+      plot_eigenvectors(raw_data,
+                        vecs,
+                        labels=[int(j) for j in manifolds[i]],
+                        filename='./images/manifold{}_{}.png'.format(i, test_name))
+      plot_eigenvectors(raw_data[:,[0,2]],
+                        vecs,
+                        labels=[int(j) for j in manifolds[i]],
+                        filename='./images/manifold{}_{}_(0,2).png'.format(i, test_name))
+      plot_eigenvectors(raw_data[:,:2],
+                        vecs,
+                        labels=[int(j) for j in manifolds[i]],
+                        filename='./images/manifold{}_{}_(0,1).png'.format(i, test_name))
+      plot_eigenvectors(raw_data[:,1:],
+                        vecs,
+                        labels=[int(j) for j in manifolds[i]],
+                        filename='./images/manifold{}_{}_(1,2).png'.format(i, test_name))
 
 if __name__ == '__main__':
   main()
