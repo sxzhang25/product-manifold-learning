@@ -114,4 +114,22 @@ def plot_independent_eigenvectors(manifold1, manifold2,
     plt.savefig(filename)
   plt.show()
 
+def plot_correlations(corrs, thresh=None):
+  plt.bar(np.arange(len(corrs.values())), sorted(corrs.values()), 2, color='g')
+  if thresh:
+    plt.plot([0, len(corrs.values())], [thresh, thresh], "k--")
+    plt.annotate('thresh = {}'.format(thresh), xy=(0, thresh + 0.01))
+  plt.title('Correlations')
+  plt.show()
+
+def plot_embedding(phi, dims):
+  if len(dims) is 0:
+    return
+  fig = plt.figure()
+  if len(dims) == 2:
+    ax = fig.add_subplot(111)
+    ax.scatter(phi[:,dims[0]], phi[:,dims[1]], s=5)
+  else:
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5)
   plt.show()
