@@ -110,6 +110,7 @@ def main():
   n_eigenvectors = params['n_eigenvectors']
   lambda_thresh = params['lambda_thresh']
   corr_thresh = params['corr_thresh']
+  K = params['K']
 
   generate_plots = False
 
@@ -172,7 +173,7 @@ def main():
   # split eigenvectors
   print("\nSplitting eigenvectors...")
   t0 = time.perf_counter()
-  labels = syn.split_eigenvectors(best_matches, best_corrs, n_eigenvectors, n_comps=n_comps)
+  labels = syn.split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=n_comps)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
@@ -192,6 +193,7 @@ def main():
 
   for i in range(len(manifolds)):
     plot_embedding(phi, manifolds[i][:min(2, len(manifolds[0]))])
+
   plot_correlations(all_corrs, thresh=corr_thresh)
 
   # plot eigenvectors
