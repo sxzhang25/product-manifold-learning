@@ -43,6 +43,16 @@ def generate_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.0
                        np.random.normal(scale=noise, size=n_samples))
     data = np.column_stack((line1_data, line2_data))
 
+  elif datatype=='rectangle3d':
+    # rectangle
+    l1, l2 = dimensions
+    line1_data = l1 * (np.random.rand(n_samples) +  \
+                       np.random.normal(scale=noise, size=n_samples))
+    line2_data = l2 * (np.random.rand(n_samples) +  \
+                       np.random.normal(scale=noise, size=n_samples))
+    line3_data = noise * (np.random.normal(size=n_samples))
+    data = np.column_stack((line1_data, line2_data, line3_data))
+
   elif datatype=='line_circle':
     # hollow cylinder
     l1, l2 = dimensions
@@ -157,7 +167,7 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
   max_corrs = {}
   all_corrs = {}
 
-  for k in range(n_comps, phi.shape[1]):
+  for k in range(2, phi.shape[1]):
     # show progress
     if (k % 10 == 0):
       sys.stdout.write('\r')
@@ -204,28 +214,30 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, n_comps=2):
+def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, verbose=True):
   '''
   clusters eigenvectors into two separate groups
   '''
   votes = np.zeros(n_eigenvectors)
   W = np.zeros((n_eigenvectors, n_eigenvectors))
 
-  print("\nCombos...")
-  for match in list(best_matches):
-    combo = best_matches[match]
-    print(combo, match)
-    for pair in list(combinations(combo, 2)):
-      W[pair[0]][pair[1]] += best_corrs[match]
-      W[pair[1]][pair[0]] += best_corrs[match]
-      votes[pair[0]] += best_corrs[match]
-      votes[pair[1]] += best_corrs[match]
-  print("\nVotes:\n", votes)
+  if verbose:
+    # print("\nCombos...")
+    print('{:15} {:5} {:5}'.format('Combo', 'Match', 'Corr'))
+    for match in list(best_matches):
+      combo = best_matches[match]
+      print('{:10} {:5} {:5}'.format(str(combo), match, np.around(best_corrs[match], 3)))
+      for pair in list(combinations(combo, 2)):
+        W[pair[0]][pair[1]] += best_corrs[match]
+        W[pair[1]][pair[0]] += best_corrs[match]
+        votes[pair[0]] += best_corrs[match]
+        votes[pair[1]] += best_corrs[match]
+    print("\nVotes:\n", votes)
 
   # perform spectral clustering based on independent vectors
-  independent = np.where(votes>0)[0]
+  independent = np.where(votes>K)[0]
   n = len(independent)
-  W_ = np.zeros((n, n))
+  W_ = np.ones((n, n))
   for i in range(W_.shape[0]):
     for j in range(W_.shape[1]):
       if i == j:
@@ -254,7 +266,7 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, n_comps=2):
       labels[1][i] = 1 if projections[i] >= 0 else 0
 
   elif n_comps > 2:
-    # follow heuristic according to
+    # follow max k-cut heuristic according to:
     # https://drops.dagstuhl.de/opus/volltexte/2018/8309/pdf/OASIcs-SOSA-2018-13.pdf
 
     Y = cp.Variable((n,n), PSD=True)
@@ -279,55 +291,16 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, n_comps=2):
     g_assignment = assignment.T @ g
     g_assignment_ = assignment_.T @ g
     theta = np.arctan2((g_assignment_), (g_assignment))
-    for i in range(n):
-      theta_old = theta[i]
-      if g_assignment[i] >= 0:
-        if g_assignment_[i] < 0:
-          print('case 1')
-          theta[i] += 2 * np.pi
-        else:
-          print('case 0')
-      else:
-        print('case 3')
-        theta[i] += np.pi
-      print(theta_old, theta[i])
-
     z = 2 * np.pi * np.random.random()
-    print(z)
-    plt.figure()
-    for i in theta:
-      plt.plot([0, np.cos(i)], [0, np.sin(i)], c='red')
-    for j in range(n_comps):
-      z_angle = (z + j * 2 * np.pi / n_comps) % (2 * np.pi)
-      plt.plot([0, np.cos(z_angle)], [0, np.sin(z_angle)], c='black')
-    plt.xlim((-1.1, 1.1))
-    plt.ylim((-1.1, 1.1))
-    plt.axis('equal')
-    plt.show()
-
-    # partition = np.random.normal(size=(n, n_comps))
-    # projections = assignment.T @ partition
 
     labels = np.zeros((2, len(independent)), dtype='int')
     labels[0,:] = independent
     for i in range(n):
-      for j in range(n_comps):
-        if (z + j * 2 * np.pi / n_comps) % (2 * np.pi) <= theta[i] and theta[i] < (z + j * 2 * np.pi / n_comps) % (2 * np.pi) + j * 2 * np.pi / n_comps:
-          labels[1][i] = j
+      labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_comps))
+
+    plot_k_cut(labels, n_comps, theta, z)
 
   return labels
-
-  # W_ = np.exp(-W_**2)
-  # np.set_printoptions(precision=3)
-  # clustering = SpectralClustering(n_clusters=n_comps,
-  #                                 affinity='precomputed',
-  #                                 assign_labels='kmeans',
-  #                                 random_state=0).fit(W_)
-  #
-  # labels = np.zeros((2, len(independent)), dtype='int')
-  # labels[0,:] = independent
-  # labels[1,:] = clustering.labels_
-  # return labels
 
 def main():
   ###
@@ -356,8 +329,9 @@ def main():
   n_eigenvectors = params['n_eigenvectors']
   lambda_thresh = params['lambda_thresh']
   corr_thresh = params['corr_thresh']
+  K = params['K']
 
-  generate_plots = False
+  generate_plots = True
 
   ###
   # DATA GENERATION
@@ -429,7 +403,7 @@ def main():
   # split eigenvectors
   print("\nSplitting eigenvectors...")
   t0 = time.perf_counter()
-  labels = split_eigenvectors(best_matches, best_corrs, n_eigenvectors, n_comps=n_comps)
+  labels = split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=n_comps)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
@@ -451,6 +425,7 @@ def main():
 
   for i in range(len(manifolds)):
     plot_embedding(phi, manifolds[i][:min(2, len(manifolds[0]))])
+
   plot_correlations(all_corrs, thresh=corr_thresh)
 
   if generate_plots:
