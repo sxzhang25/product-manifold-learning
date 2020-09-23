@@ -109,9 +109,9 @@ def main():
   n_comps = params['n_comps']
   n_eigenvectors = params['n_eigenvectors']
   lambda_thresh = params['lambda_thresh']
-  K = params['K']
+  corr_thresh = params['corr_thresh']
 
-  generate_plots = True
+  generate_plots = False
 
   if precomputed:
     info = pickle.load(open("./data/{}_info.pickle".format(test_name), "rb"))
@@ -121,6 +121,7 @@ def main():
     image_data = info['image_data']
     raw_data = info['raw_data']
     # plot_data(image_data[:9])
+
   else:
     # create a dictionary to store all information in
     info = {}
@@ -135,7 +136,7 @@ def main():
   print("\nApplying PCA and standard scaling...")
   t0 = time.perf_counter()
   image_data = np.reshape(image_data, (n_samples, -1))
-  pca = PCA(n_components=16)
+  pca = PCA(n_components=4)
   image_data = pca.fit_transform(image_data)
 
   # standard scale each channel
@@ -160,21 +161,18 @@ def main():
   # find combos
   print("\nComputing combos...")
   t0 = time.perf_counter()
-  matches, dists = syn.find_combos(phi, Sigma, n_comps, lambda_thresh)
+  best_matches, best_corrs, all_corrs = syn.find_combos(phi, Sigma, n_comps, lambda_thresh, corr_thresh)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
-  info['matches'] = matches
-  info['dists'] = dists
+  info['best_matches'] = best_matches
+  info['best_corrs'] = best_corrs
+  info['all_corrs'] = all_corrs
 
   # split eigenvectors
   print("\nSplitting eigenvectors...")
   t0 = time.perf_counter()
-  labels = syn.split_eigenvectors(matches,
-                                  dists,
-                                  n_eigenvectors,
-                                  K,
-                                  n_comps=n_comps)
+  labels = syn.split_eigenvectors(best_matches, best_corrs, n_eigenvectors, n_comps=n_comps)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
@@ -191,6 +189,10 @@ def main():
   with open('./data/{}_info.pickle'.format(test_name), 'wb') as handle:
     pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
   print("Done")
+
+  for i in range(len(manifolds)):
+    plot_embedding(phi, manifolds[i][:min(2, len(manifolds[0]))])
+  plot_correlations(all_corrs, thresh=corr_thresh)
 
   # plot eigenvectors
   if generate_plots:
