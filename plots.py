@@ -133,3 +133,16 @@ def plot_embedding(phi, dims):
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5)
   plt.show()
+
+def plot_k_cut(labels,n_comps, theta, z):
+  plt.figure()
+  for i in range(len(theta)):
+    plt.plot([0, np.cos(theta[i])], [0, np.sin(theta[i])], c='red')
+    plt.annotate(labels[0][i], xy=(np.cos(theta[i]), np.sin(theta[i])))
+  for j in range(n_comps):
+    z_angle = (z + j * 2 * np.pi / n_comps) % (2 * np.pi)
+    plt.plot([0, np.cos(z_angle)], [0, np.sin(z_angle)], c='black')
+  plt.xlim((-1.1, 1.1))
+  plt.ylim((-1.1, 1.1))
+  plt.axis('equal')
+  plt.show()
