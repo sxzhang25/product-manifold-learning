@@ -11,11 +11,6 @@ Before running this project, make sure to `pip install` the following packages:
 
 This project was developed using Python 3.7.0.
 
-## Generating data
-To generate new data for the algorithm, set the `precomputed` field in the `.json` parameters file to `false`.
-
-To set the directory for saved datasets, change the `data_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
-
 ## Running experiments
 To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file. 
 
@@ -32,6 +27,11 @@ python run_cryo_em.py params_cryo_em.json
 ```
 
 To set the directory for saving figures, change the `image_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
+
+## Generating data
+To generate new data for the algorithm, set the `precomputed` field in the `.json` parameters file to `false`.
+
+To set the directory for saved datasets, change the `data_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
 
 ## Customizing algorithm parameters
 The settings for the algorithm are stored in a `.json` file. 
