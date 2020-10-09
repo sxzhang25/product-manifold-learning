@@ -1,18 +1,14 @@
-import time
-import sys
-import json
-import pickle
-from itertools import combinations
-
 import numpy as np
+import sys
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
+import cvxpy as cp
+
+from itertools import combinations
 from scipy.stats.stats import pearsonr
 from scipy.spatial.distance import pdist, squareform
 from sklearn.utils.extmath import randomized_svd
-from sklearn.cluster import SpectralClustering
-import matplotlib.colors as colors
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-import cvxpy as cp
 
 from plots import *
 
@@ -23,7 +19,7 @@ from plots import *
 # the Laplacian, eigenvalues, and independent manifolds of the data
 ###
 
-def generate_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.05):
+def generate_synthetic_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.05):
   '''
   generates uniform random data
   dimensions: the dimensions of the data
@@ -45,12 +41,12 @@ def generate_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.0
 
   elif datatype=='rectangle3d':
     # rectangle
-    l1, l2 = dimensions
+    l1, l2, z_noise = dimensions
     line1_data = l1 * (np.random.rand(n_samples) +  \
                        np.random.normal(scale=noise, size=n_samples))
     line2_data = l2 * (np.random.rand(n_samples) +  \
                        np.random.normal(scale=noise, size=n_samples))
-    line3_data = noise * (np.random.normal(size=n_samples))
+    line3_data = np.random.normal(scale=z_noise, size=n_samples)
     data = np.column_stack((line1_data, line2_data, line3_data))
 
   elif datatype=='line_circle':
@@ -80,12 +76,12 @@ def generate_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.0
     r1, r2 = dimensions
     circle1_data = np.empty((n_samples,2))
     theta = 2 * np.pi * np.random.rand(n_samples)
-    circle1_data[:,0] = (r1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
-    circle1_data[:,1] = (r1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
+    circle1_data[:,0] = r1 + (r1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
+    circle1_data[:,1] = r1 + (r1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
     circle2_data = np.empty((n_samples,2))
     theta = 2 * np.pi * np.random.rand(n_samples)
-    circle2_data[:,0] = (r2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
-    circle2_data[:,1] = (r2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
+    circle2_data[:,0] = r2 + (r2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
+    circle2_data[:,1] = r2 + (r2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
     data = np.column_stack((circle1_data, circle2_data))
 
   else:
@@ -94,27 +90,21 @@ def generate_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.0
 
   return data
 
-def plot_data(data, title=None, filename=None):
-  '''
-  plot the original data
-  '''
-
-  fig = plt.figure(figsize=(5,5))
-  if data.shape[1] <= 2:
-    ax = fig.add_subplot(111)
-    ax.scatter(data[:,0], data[:,1], s=5)
-  elif data.shape[1] == 3:
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(data[:,0], data[:,1], data[:,2], s=5)
+def get_gt_data(data, datatype):
+  if datatype == 'line_circle':
+    data_gt = np.zeros((data.shape[0],2))
+    data_gt[:,0] = data[:,0]
+    data_gt[:,1] = np.arctan2(data[:,2], data[:,1])
+  elif datatype == 'rectangle3d':
+    data_gt = data[:,:2]
+  elif datatype == 'torus':
+    data_gt = np.zeros((data.shape[0],2))
+    data_gt[:,0] = np.arctan2(data[:,1], data[:,0])
+    data_gt[:,1] = np.arctan2(data[:,3], data[:,2])
   else:
-    ax = fig.add_subplot(111, projection='3d')
-    g = ax.scatter(data[:,0], data[:,1], data[:,2], c=data[:,3], s=5)
-    cb = plt.colorbar(g)
-  if title:
-    plt.title(title, pad=10)
-  if filename:
-    plt.savefig(filename)
-  plt.show()
+    data_gt = data
+
+  return data_gt
 
 ###
 # COMPUTE EIGENVECTORS
@@ -179,7 +169,7 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
     max_corr = 0
     best_match = []
 
-    for m in range(1, n_comps + 1):
+    for m in range(2, 3): # (1, n_comps + 1)
       for combo in list(combinations(np.arange(1, k), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
@@ -214,7 +204,7 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, verbose=True):
+def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, verbose=False):
   '''
   clusters eigenvectors into two separate groups
   '''
@@ -222,16 +212,19 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, v
   W = np.zeros((n_eigenvectors, n_eigenvectors))
 
   if verbose:
-    # print("\nCombos...")
-    print('{:15} {:5} {:5}'.format('Combo', 'Match', 'Corr'))
-    for match in list(best_matches):
-      combo = best_matches[match]
-      print('{:10} {:5} {:5}'.format(str(combo), match, np.around(best_corrs[match], 3)))
-      for pair in list(combinations(combo, 2)):
-        W[pair[0]][pair[1]] += best_corrs[match]
-        W[pair[1]][pair[0]] += best_corrs[match]
-        votes[pair[0]] += best_corrs[match]
-        votes[pair[1]] += best_corrs[match]
+    print('{:10} {:>7} {:>7}'.format('Combo', 'Match', 'Corr'))
+
+  for match in list(best_matches):
+    combo = best_matches[match]
+    if verbose:
+      print('{:10} {:7} {:7}'.format(str(combo), match, np.around(best_corrs[match], 3)))
+    for pair in list(combinations(combo, 2)):
+      W[pair[0]][pair[1]] += best_corrs[match]
+      W[pair[1]][pair[0]] += best_corrs[match]
+      votes[pair[0]] += best_corrs[match]
+      votes[pair[1]] += best_corrs[match]
+
+  if verbose:
     print("\nVotes:\n", votes)
 
   # perform spectral clustering based on independent vectors
@@ -298,181 +291,18 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, v
     for i in range(n):
       labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_comps))
 
-    plot_k_cut(labels, n_comps, theta, z)
+    # plot_k_cut(labels, n_comps, theta, z)
 
   return labels
 
-def main():
-  ###
-  # GET PARAMETERS
-  ###
-
-  datafile = sys.argv[1]
-  with open(datafile) as f:
-    params = json.load(f)
-
-  # unpack parameters
-  print("\nParameters...")
-  for item, amount in params.items():
-    print("{:>15}:  {}".format(item, amount))
-
-  test_name = params['test_name']
-  precomputed = params['precomputed']
-  dimensions = params['dimensions']
-  dimensions[0] = np.sqrt(np.pi) + dimensions[0]
-  noise = params['noise']
-  n_samples = params['n_samples']
-  seed = params['seed']
-  datatype = params['datatype']
-  sigma = params['sigma']
-  n_comps = params['n_comps']
-  n_eigenvectors = params['n_eigenvectors']
-  lambda_thresh = params['lambda_thresh']
-  corr_thresh = params['corr_thresh']
-  K = params['K']
-
-  generate_plots = True
-
-  ###
-  # DATA GENERATION
-  ###
-
-  if precomputed:
-    info = pickle.load(open("./data/{}_info.pickle".format(test_name), "rb"))
-
-    # load data
-    print("\nLoading data...")
-    data = info['data']
-
-    print("\nLoading phi, Sigma...")
-    phi = info['phi']
-    Sigma = info['Sigma']
-
-    print("\nLoading matches and distances...")
-    best_matches = info['best_matches']
-    best_corrs = info['best_corrs']
-    all_corrs = info['all_corrs']
-
-    if datatype == 'line_circle':
-      data_r = np.zeros((data.shape[0],2))
-      data_r[:,0] = data[:,0]
-      data_r[:,1] = np.arctan2(data[:,2], data[:,1])
-    else:
-      data_r = data
-  else:
-    # create a dictionary to store all information in
-    info = {}
-
-    # generate random data
-    print("\nGenerating random data...")
-    data = generate_data(dimensions,
-                         noise=noise,
-                         n_samples=n_samples,
-                         datatype=datatype,
-                         seed=seed)
-    info['data'] = data
-
-    if datatype == 'line_circle':
-      data_r = np.zeros((data.shape[0],2))
-      data_r[:,0] = data[:,0]
-      data_r[:,1] = np.arctan2(data[:,2], data[:,1])
-    else:
-      data_r = data
-
-    # compute eigenvectors
-    print("\nComputing eigenvectors...")
-    t0 = time.perf_counter()
-    W = calc_W(data_r, sigma)
-    phi, Sigma = calc_vars(data_r, W, sigma, n_eigenvectors=n_eigenvectors)
-    t1 = time.perf_counter()
-    print("  Time: %2.2f seconds" % (t1-t0))
-
-    info['phi'] = phi
-    info['Sigma'] = Sigma
-
-  # find combos
-  print("\nComputing combos...")
-  t0 = time.perf_counter()
-  best_matches, best_corrs, all_corrs = find_combos(phi, Sigma, n_comps, lambda_thresh, corr_thresh)
-  t1 = time.perf_counter()
-  print("  Time: %2.2f seconds" % (t1-t0))
-  info['best_matches'] = best_matches
-  info['best_corrs'] = best_corrs
-  info['all_corrs'] = all_corrs
-
-  # split eigenvectors
-  print("\nSplitting eigenvectors...")
-  t0 = time.perf_counter()
-  labels = split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=n_comps)
-  t1 = time.perf_counter()
-  print("  Time: %2.2f seconds" % (t1-t0))
-
-  manifolds = []
-  for m in range(n_comps):
-    manifold = labels[0][np.where(labels[1]==m)[0]]
-    manifolds.append(manifold)
-    print("Manifold #{}".format(m), manifold)
-
-  info['manifolds'] = manifolds
-
-  # save info dictionary using pickle
-  with open('./data/{}_info.pickle'.format(test_name), 'wb') as handle:
-    pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-  ###
-  # GENERATE PLOTS
-  ###
-
-  for i in range(len(manifolds)):
-    plot_embedding(phi, manifolds[i][:min(2, len(manifolds[0]))])
-
-  plot_correlations(all_corrs, thresh=corr_thresh)
-
-  if generate_plots:
-    # vecs = [phi[:,i] for i in range(n_eigenvectors)]
-    # plot_eigenvectors(data_r[:,:2],
-    #                   vecs[:25],
-    #                   labels=[int(i) for i in range(n_eigenvectors)],
-    #                   title='Laplace Eigenvectors',
-    #                   filename='./images/' + test_name + '_eigenvalues_' + '_(0,1)' + '.png')
-    # plot_eigenvectors(data_r[:,1:],
-    #                   vecs[:25],
-    #                   labels=[int(i) for i in range(n_eigenvectors)],
-    #                   title='Laplace Eigenvectors',
-    #                   filename='./images/' + test_name + '_eigenvalues_' + '_(1,2)' + '.png')
-    # plot_eigenvectors(data_r[:,[0,2]],
-    #                   vecs[:25],
-    #                   labels=[int(i) for i in range(n_eigenvectors)],
-    #                   title='Laplace Eigenvectors',
-    #                   filename='./images/' + test_name + '_eigenvalues_' + '_(0,2)' + '.png')
-    if not precomputed:
-      # plot original data
-      plot_data(data,
-                title='Original Data',
-                filename='./images/{}_original_data.png'.format(test_name))
-
-      # plot eigenvectors
-      vecs = [phi[:,i] for i in range(n_eigenvectors)]
-      eigenvectors_filename = './images/' + test_name + '_eigenvalues_' + str(n_eigenvectors) + '.png'
-      plot_eigenvectors(data_r,
-                        vecs[:25],
-                        labels=[int(i) for i in range(n_eigenvectors)],
-                        title='Laplace Eigenvectors',
-                        filename=eigenvectors_filename)
-
-    # plot best matches
-    manifolds = info['manifolds']
-
-    independent_vecs = []
+def get_mixture_eigenvectors(manifolds, n_eigenvectors):
+  mixtures = []
+  for i in range(1, n_eigenvectors):
+    is_mixture = True
     for manifold in manifolds:
-      vecs = [phi[:,int(i)] for i in manifold]
-      independent_vecs.append(vecs)
+      if i in manifold:
+        is_mixture = False
+    if is_mixture:
+      mixtures.append(i)
 
-    for i,vecs in enumerate(independent_vecs):
-      plot_eigenvectors(data_r,
-                        vecs,
-                        labels=[int(j) for j in manifolds[i]],
-                        filename='./images/manifold{}_{}.png'.format(i, test_name))
-
-if __name__ == '__main__':
-  main()
+  return mixtures
