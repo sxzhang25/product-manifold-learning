@@ -6,5 +6,4 @@ updates/
 __pycache__
 
 *.ipynb
-params*
 fakekv.py
