@@ -2,6 +2,70 @@ import numpy as np
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from itertools import combinations
+
+import synthetic as syn
+
+###
+# PLOT DATA
+###
+
+def plot_synthetic_data(data, dimensions, title=None, filename=None, azim=60, elev=30, proj_type='persp'):
+  '''
+  plot the original data
+  '''
+
+  fig = plt.figure(figsize=(5,5))
+  if data.shape[1] <= 2:
+    ax = fig.add_subplot(111)
+    ax.scatter(data[:,0], data[:,1], s=5)
+  elif data.shape[1] == 3:
+    ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev, proj_type=proj_type)
+    x, y, z = dimensions
+    axis_max = np.max(dimensions)
+    ax.set_xlim3d((x - axis_max) / 2, (x + axis_max) / 2)
+    ax.set_ylim3d((y - axis_max) / 2, (y + axis_max) / 2)
+    ax.set_zlim3d((z - axis_max) / 2, (z + axis_max) / 2)
+    ax.scatter(data[:,0], data[:,1], data[:,2], s=5, c=data[:,2])
+  else:
+    ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev, proj_type=proj_type)
+    x, y, z = dimensions
+    axis_max = np.max(dimensions)
+    ax.set_xlim3d((x - axis_max) / 2, (x + axis_max) / 2)
+    ax.set_ylim3d((y - axis_max) / 2, (y + axis_max) / 2)
+    ax.set_zlim3d((z - axis_max) / 2, (z + axis_max) / 2)
+    g = ax.scatter(data[:,0], data[:,1], data[:,2], c=data[:,3], s=5)
+    cb = plt.colorbar(g)
+  if title:
+    plt.title(title, pad=10)
+  if filename:
+    plt.savefig(filename)
+  plt.show()
+
+def plot_cryo_em_data(data, title=None, filename=None):
+  '''
+  plots the images of the synthetic data
+  '''
+  n_samples = data.shape[0]
+  rows = int(np.ceil(n_samples**0.5))
+  cols = rows
+  fig, axs = plt.subplots(rows, cols, figsize=(3 * cols, 3 * rows))
+  for r in range(rows):
+    for c in range(cols):
+      ax = axs[r, c]
+      index = r * cols + c
+      if index >= n_samples:
+        ax.set_visible(False)
+      else:
+        vol = data[index]
+        ax.imshow(vol, cmap='gray')
+        ax.get_xaxis().set_ticks([])
+        ax.get_yaxis().set_ticks([])
+  if title:
+    plt.title(title, pad=10)
+  if filename:
+    plt.savefig(filename)
+  plt.show()
 
 ###
 # PLOT EIGENVECTORS
@@ -26,7 +90,8 @@ def plot_eigenvector(data, v, scaled=False, title=None, filename=None):
     plt.savefig(filename)
   plt.show()
 
-def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None):
+def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, title=None,
+                      filename=None, offset_scale=0.1, azim=60, elev=30, proj_type='persp'):
   '''
   plots the array eigenvectors
 
@@ -35,21 +100,47 @@ def plot_eigenvectors(data, eigenvectors, labels=None, title=None, filename=None
   rows = int(np.ceil(len(eigenvectors)**0.5))
   cols = rows
   if data.shape[1] <= 2:
-    fig, axs = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows))
-    for r in range(rows):
-      for c in range(cols):
-        ax = axs[r, c] if len(eigenvectors) > 1 else axs
-        index = r * cols + c
-        if index >= len(eigenvectors):
-          ax.set_visible(False)
-        else:
-          v = eigenvectors[r * cols + c]
-          v /= np.linalg.norm(v)
-          g = ax.scatter(data[:,0], data[:,1], marker="s", c=v)
-          fig.colorbar(g, ax=ax)
-          ax.set_aspect('equal', 'datalim')
-          if labels is not None:
-            ax.set_title(labels[index])
+    if full:
+      fig, axs = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows))
+      for r in range(rows):
+        for c in range(cols):
+          ax = axs[r, c] if len(eigenvectors) > 1 else axs
+          index = r * cols + c
+          if index >= len(eigenvectors):
+            ax.set_visible(False)
+          else:
+            v = eigenvectors[r * cols + c]
+            v /= np.linalg.norm(v)
+            g = ax.scatter(data[:,0], data[:,1], marker="s", c=v)
+            fig.colorbar(g, ax=ax)
+            ax.set_aspect('equal', 'datalim')
+            if labels is not None:
+              ax.set_title(labels[index])
+    else:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev, proj_type=proj_type)
+      x, y, z = dimensions
+      axis_max = np.max(dimensions)
+      offset = offset_scale * len(eigenvectors)
+      ax.set_xlim3d((x - axis_max) / 2, (x + axis_max) / 2 + offset)
+      ax.set_ylim3d((y - axis_max) / 2, (y + axis_max) / 2 + offset)
+      ax.set_zlim3d(0, len(eigenvectors))
+      ax.set_xticks([])
+      ax.set_yticks([])
+      ax.set_zticks([])
+      plt.axis('off')
+      plt.grid(b=None)
+      plt.tight_layout()
+      plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+
+      for i in range(len(eigenvectors)):
+        v = eigenvectors[i]
+        v /= np.linalg.norm(v)
+        g = ax.scatter(data[:,0] + offset_scale * np.ones(data.shape[0]) * (len(eigenvectors) - i),
+                       data[:,1] + offset_scale * np.ones(data.shape[0]) * (len(eigenvectors) - i),
+                       np.ones(data.shape[0]) * (len(eigenvectors) - i),
+                       marker="s",
+                       c=v)
   else:
     fig = plt.figure(figsize=(5 * cols, 5 * rows))
     for r in range(rows):
@@ -114,15 +205,18 @@ def plot_independent_eigenvectors(manifold1, manifold2,
     plt.savefig(filename)
   plt.show()
 
-def plot_correlations(corrs, thresh=None):
-  plt.bar(np.arange(len(corrs.values())), sorted(corrs.values()), 2, color='g')
+def plot_triplet_correlations(corrs, thresh=None, filename=None):
+  counts, bins, patches = plt.hist(corrs.values(), 50, density=True)
   if thresh:
-    plt.plot([0, len(corrs.values())], [thresh, thresh], "k--")
-    plt.annotate('thresh = {}'.format(thresh), xy=(0, thresh + 0.01))
-  plt.title('Correlations')
+    plt.plot([thresh, thresh], [0, np.max(counts)], "k--", linewidth=1)
+    plt.annotate('thresh = {}'.format(thresh), xy=(thresh + 0.01, np.max(counts)))
+  plt.yticks([])
+  plt.title('Correlation density')
+  if filename:
+    plt.savefig(filename)
   plt.show()
 
-def plot_embedding(phi, dims):
+def plot_embedding(phi, dims, filename=None):
   if len(dims) is 0:
     return
   fig = plt.figure()
@@ -132,6 +226,63 @@ def plot_embedding(phi, dims):
   else:
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5)
+  if filename:
+    plt.savefig(filename)
+  plt.show()
+
+def plot_mixture_correlations(mixtures, phi, Sigma, steps, filename=None):
+  start, end, skip = steps
+  num_plots = (end - start) // skip
+  fig = plt.figure(figsize=(2 * num_plots, 3))
+  plt.rc('xtick', labelsize=12)
+  plt.rc('ytick', labelsize=12)
+  for i,index in enumerate(mixtures[start:end:skip]):
+    ax1 = fig.add_subplot(2, num_plots, i + 1)
+    ax2 = fig.add_subplot(2, num_plots, i + 1 + num_plots)
+    corrs = []
+    eigs = []
+    v = phi[:,index]
+    lambda_v = Sigma[index]
+    for m in range(2, 3): # (1, n_comps + 1)
+      for combo in list(combinations(np.arange(1, index), m)):
+        combo = list(combo)
+        lambda_sum = np.sum(Sigma[combo])
+        lambda_diff = abs(lambda_v - lambda_sum)
+        eigs.append(lambda_diff)
+
+        # get product of proposed base eigenvectors
+        v_combo = np.ones(phi.shape[0])
+        for i in combo:
+          v_combo *= phi[:,i]
+
+        # test with positive
+        corr = syn.calculate_corr(v_combo, v)
+
+        # test with negative
+        dcorr = syn.calculate_corr(v_combo, -v)
+        corr = max(corr, dcorr)
+        corrs.append(corr)
+
+    ax1.set_title(i, fontsize=12)
+    ax1.set_xlim(0, 1)
+    ax1.get_xaxis().set_ticks([])
+    ax1.get_yaxis().set_ticks([])
+
+    counts, _, _ = ax1.hist(corrs, 50, density=True)
+    max_corr = np.max(corrs)
+    ax1.annotate('{}'.format(np.around(max_corr, 2)),
+                 xy=(max_corr, 0),
+                 xytext=(max_corr - 0.25, 0.25 * np.max(counts)),
+                 fontsize=12,
+                 arrowprops=dict(arrowstyle='->',
+                            color='r'))
+
+    ax2.set_xlim(0, 1)
+    ax2.get_xaxis().set_ticks([0.0, 0.5, 1.0])
+    ax2.scatter(corrs, eigs, s=3)
+  plt.tight_layout(pad=0.5)
+  if filename:
+    plt.savefig(filename)
   plt.show()
 
 def plot_k_cut(labels,n_comps, theta, z):
