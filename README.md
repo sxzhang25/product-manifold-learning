@@ -11,6 +11,28 @@ Before running this project, make sure to `pip install` the following packages:
 
 This project was developed using Python 3.7.0.
 
+## Generating data
+To generate new data for the algorithm, set the `precomputed` field in the `.json` parameters file to `false`.
+
+To set the directory for saved datasets, change the `data_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
+
+## Running experiments
+To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file. 
+
+For example, to run the algorithm on data sampled from a 2d rectangle with 3d noise, run
+
+```
+python run_synthetic.py params_rectangle3d.json
+```
+
+To run the algorithm on synthetic cryo-EM data, use `run_cryo_em.py` on the appropriate parameters `.json` file.
+
+```
+python run_cryo_em.py params_cryo_em.json
+```
+
+To set the directory for saving figures, change the `image_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
+
 ## Customizing algorithm parameters
 The settings for the algorithm are stored in a `.json` file. 
 
@@ -44,25 +66,3 @@ The format of parameters for cryo-EM data is:
 * `lambda_thresh`: The threshold for the eigenvalue criterion (see Section 3.1 of the paper for more details).
 * `corr_thresh`: The threshold for the correlation criterion (see Section 3.1 of the paper for more details).
 * `K`: The number of votes needed to pass the caucusing step (see Section 3.2 of the paper for more details).
-
-## Generating data
-To generate new data for the algorithm, set the `precomputed` field in the `.json` parameters file to `false`.
-
-To set the directory for saved datasets, change the `data_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
-
-## Running experiments
-To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file. 
-
-For example, to run the algorithm on data sampled from a 2d rectangle with 3d noise, run
-
-```
-python run_synthetic.py params_rectangle3d.json
-```
-
-To run the algorithm on synthetic cryo-EM data, use `run_cryo_em.py` on the appropriate parameters `.json` file.
-
-```
-python run_cryo_em.py params_cryo_em.json
-```
-
-To set the directory for saving figures, change the `image_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
