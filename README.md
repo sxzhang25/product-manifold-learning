@@ -34,7 +34,7 @@ To generate new data for the algorithm, set the `precomputed` field in the `.jso
 To set the directory for saved datasets, change the `data_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
 
 ## Customizing algorithm parameters
-The settings for the algorithm are stored in a `.json` file. 
+The settings for the algorithm used in the experiments from the paper are stored in a `.json` file. 
 
 The format of parameters for geometric data is:
 
