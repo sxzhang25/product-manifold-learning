@@ -1,4 +1,10 @@
-data/
+/*
+!.gitignore
+
+!/data/
+/data/*
+!/data/fakekv_data
+
 drafts/
 images/
 papers/
