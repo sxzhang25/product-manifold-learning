@@ -151,7 +151,7 @@ def main():
       print("Plotting eigenvectors for manifold {}...".format(m + 1))
       plot_eigenvectors(raw_data,
                         [2 * x, 90, 0],
-                        vecs,
+                        vecs[:5],
                         full=False,
                         labels=[int(j) for j in manifolds[m]],
                         filename='./images/manifold{}_{}.png'.format(m, test_name))
