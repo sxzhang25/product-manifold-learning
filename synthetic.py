@@ -125,14 +125,15 @@ def calc_vars(data, W, sigma, n_eigenvectors):
   '''
 
   ones = np.ones(W.shape[0])
-  v = np.sqrt(W @ ones)
-  S = W / np.outer(v, v)
-  V, Sigma, VT = randomized_svd(S,
+  p = W @ ones
+  W1 = W / np.outer(p, p)
+  v = np.sqrt(W1 @ ones)
+  W2 = W1 / np.outer(v, v)
+  V, Sigma, VT = randomized_svd(W2,
                                 n_components=n_eigenvectors,
                                 n_iter=5,
                                 random_state=None)
   phi = V / V[:,0][:,None]
-  Sigma = -np.log(Sigma) / sigma
   return phi, Sigma
 
 ###
