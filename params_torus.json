@@ -1,1 +1,1 @@
-{"test_name": "torus", "precomputed": false, "dimensions": [1, 2], "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "torus", "sigma": 0.5, "n_comps": 2, "n_eigenvectors": 100, "lambda_thresh": 2, "corr_thresh": 0.6, "K": 0}
+{"test_name": "torus", "precomputed": true, "dimensions": [1, 2], "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "torus", "sigma": 0.5, "n_comps": 2, "n_eigenvectors": 100, "lambda_thresh": 1.0, "corr_thresh": 0.6, "K": 0}
