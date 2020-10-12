@@ -5,6 +5,7 @@
 /data/*
 !/data/fakekv_data
 !/params*
+!fakekv.py
 
 drafts/
 images/
@@ -13,4 +14,3 @@ updates/
 __pycache__
 
 *.ipynb
-fakekv.py
