@@ -37,7 +37,7 @@ def main():
   generate_plots = True # if set to true, plots will be created and saved
 
   # generate or load data
-  data_dir = './data/'
+  data_dir = './data/' # make sure this directory exists!
   data_filename = data_dir + '{}_info.pickle'.format(test_name)
   if precomputed:
     # data has already been generated and is stored in pickle file
