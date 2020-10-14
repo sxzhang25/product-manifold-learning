@@ -12,7 +12,7 @@ Before running this project, make sure to `pip install` the following packages:
 This project was developed using Python 3.7.0.
 
 ## Running experiments
-To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file. 
+To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file.
 
 For example, to run the algorithm on data sampled from a 2d rectangle with 3d noise, run
 
@@ -26,6 +26,8 @@ To run the algorithm on synthetic cryo-EM data, use `run_cryo_em.py` on the appr
 python run_cryo_em.py params_cryo_em.json
 ```
 
+The plots will be produced if `generate_plots` is set to `True` in the files `run_*.py`.
+
 To set the directory for saving figures, change the `image_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
 
 ## Generating data
@@ -34,7 +36,7 @@ To generate new data for the algorithm, set the `precomputed` field in the `.jso
 To set the directory for saved datasets, change the `data_dir` variable in `run_synthetic.py` or `run_cryo_em.py`.
 
 ## Customizing algorithm parameters
-The settings for the algorithm used in the experiments from the paper are stored in a `.json` file. 
+The settings for the algorithm used in the experiments from the paper are stored in a `.json` file.
 
 The format of parameters for geometric data is:
 
