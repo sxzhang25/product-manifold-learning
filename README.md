@@ -1,5 +1,5 @@
 # Product Manifold Learning
-Code for reproducing the results from the paper <a href="">"Product Manifold Learning"</a>.
+Code for reproducing the results from the paper <b>Product Manifold Learning</b>.
 
 ## Dependencies
 Before running this project, make sure to `pip install` the following packages:
