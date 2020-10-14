@@ -1,6 +1,3 @@
-# This code was repurposed from from the SPECVOLS repository
-# https://github.com/PrincetonUniversity/specvols
-
 import numpy as np
 import scipy.ndimage as ndimage
 import os
@@ -41,7 +38,8 @@ def _stretch_fakekv_middle_bottom(vol, shift):
   (shift_x, shift_y) = shift
   assert vol.shape == (108, 108, 108)
   # Note! We change the entries from Z_START to Z_END, but would copy the other ones over unaltered.
-  # So we're doing vol.copy() and then changing the relevant ones rather than initializing to zeroes and then copying over everything as appropriate
+  # So we're doing vol.copy() and then changing the relevant ones rather than initializing to 
+  # zeroes and then copying over everything as appropriate
   out_vol = vol.copy()
 
   Z_START = 16
