@@ -31,7 +31,7 @@ def main():
   corr_thresh = params['corr_thresh']
   K = params['K']
 
-  generate_plots = True # if set to true, plots will be created and saved
+  generate_plots = False # if set to true, plots will be created and saved
 
   # generate or load data
   data_dir = './data/' # make sure this directory exists!
@@ -96,7 +96,8 @@ def main():
   # split eigenvectors
   print("\nSplitting eigenvectors...")
   t0 = time.perf_counter()
-  labels = split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=n_comps, verbose=True)
+  labels, C = split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K,
+                                 n_comps=n_comps, verbose=True)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
@@ -115,6 +116,17 @@ def main():
   with open(data_filename, 'wb') as handle:
     pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
   print("Done")
+
+  # plot voting matrix
+  image_dir = './images/'
+  # plot mixture eigenvector correlations
+  mixtures = get_mixture_eigenvectors(manifolds, n_eigenvectors)
+  steps = [5, 95, 18]
+  print("Plotting select mixture correlations...")
+  plot_mixture_correlations(mixtures, phi, Sigma, steps,
+                            filename=image_dir + 'mixture_correlations_{}.png'.format(test_name))
+  plot_C_matrix(manifolds, C,
+                filename=image_dir + '{}_C_matrix.png'.format(test_name))
 
   # generate plots
   if generate_plots:
