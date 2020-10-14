@@ -17,11 +17,11 @@ def generate_cryo_em_data(n_samples, x=10, y=10, var=1, seed=0):
   '''
   Generates synthetic cryo-EM data using the FakeKV class. The synthetic
   molecule has two independent conformational components: a rotation and a
-  translation.
+  stretch.
 
   n_samples: the number of images to generate
-  x: the largest possible translation in either x-direction
-  y: the largest possible translation in either y-direction
+  x: the largest possible stretch in either x-direction
+  y: the largest possible stretch in either y-direction
   var: the variance of gaussian noise added
   seed: the random seed
   '''
@@ -30,7 +30,7 @@ def generate_cryo_em_data(n_samples, x=10, y=10, var=1, seed=0):
   raw_data = np.zeros((n_samples, 3))
   mol = FakeKV()
   for i in range(n_samples):
-    # show progress
+    # show progress in generating data
     if (i % 10 == 0):
       sys.stdout.write('\r')
       sys.stdout.write("[%-20s] %d%%" % ('='*int(20*i/n_samples), 100*i/n_samples))

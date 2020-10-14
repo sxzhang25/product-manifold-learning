@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
 from mpl_toolkits.mplot3d import Axes3D
 from itertools import combinations
+from scipy.linalg import block_diag
 
 import synthetic as syn
 
@@ -233,12 +236,15 @@ def plot_embedding(phi, dims, filename=None):
 def plot_mixture_correlations(mixtures, phi, Sigma, steps, filename=None):
   start, end, skip = steps
   num_plots = (end - start) // skip
-  fig = plt.figure(figsize=(2 * num_plots, 3))
+  fig = plt.figure(figsize=(2 * num_plots, 5))
+  gs = gridspec.GridSpec(3, num_plots)
   plt.rc('xtick', labelsize=12)
   plt.rc('ytick', labelsize=12)
   for i,index in enumerate(mixtures[start:end:skip]):
-    ax1 = fig.add_subplot(2, num_plots, i + 1)
-    ax2 = fig.add_subplot(2, num_plots, i + 1 + num_plots)
+    # ax1 = fig.add_subplot(3, num_plots, i + 1)
+    # ax2 = fig.add_subplot(3, num_plots, i + 1 + 2 * num_plots)
+    ax1 = plt.subplot(gs[:2, i])
+    ax2 = plt.subplot(gs[-1, i])
     corrs = []
     eigs = []
     v = phi[:,index]
@@ -281,6 +287,27 @@ def plot_mixture_correlations(mixtures, phi, Sigma, steps, filename=None):
     ax2.get_xaxis().set_ticks([0.0, 0.5, 1.0])
     ax2.scatter(corrs, eigs, s=3)
   plt.tight_layout(pad=0.5)
+  if filename:
+    plt.savefig(filename)
+  plt.show()
+
+def plot_C_matrix(manifolds, C, filename=None):
+  C1 = np.empty((C.shape[0], 0))
+  idxs = []
+  for m in manifolds:
+    idxs.extend(m)
+    C1 = np.concatenate((C1, C[:,m]), axis=1)
+
+  C2 = np.empty((0, C1.shape[1]))
+  for m in manifolds:
+    C2 = np.concatenate((C2, C1[m,:]), axis=0)
+
+  fig = plt.figure()
+  ax = fig.add_subplot(111)
+  ax.set_xticklabels(['']) # + idxs)
+  ax.set_yticklabels(['']) # + idxs)
+  matrix = ax.matshow(C2, cmap=plt.cm.Reds)
+  fig.colorbar(matrix)
   if filename:
     plt.savefig(filename)
   plt.show()

@@ -19,9 +19,10 @@ from plots import *
 # the Laplacian, eigenvalues, and independent manifolds of the data
 ###
 
-def generate_synthetic_data(dimensions, n_samples, datatype='rectangle', seed=0, noise=0.05):
+def generate_synthetic_data(dimensions, n_samples, datatype='rectangle',
+                            seed=0, noise=0.05):
   '''
-  generates uniform random data
+  generates uniform random data from simple geometric manifolds
   dimensions: the dimensions of the data
   num_samples: the number of samples to generate
   seed: the random seed for generating the data
@@ -91,6 +92,9 @@ def generate_synthetic_data(dimensions, n_samples, datatype='rectangle', seed=0,
   return data
 
 def get_gt_data(data, datatype):
+  '''
+  converts the observed data to the ground truth data from the latent manifold
+  '''
   if datatype == 'line_circle':
     data_gt = np.zeros((data.shape[0],2))
     data_gt[:,0] = data[:,0]
@@ -113,6 +117,9 @@ def get_gt_data(data, datatype):
 def calc_W(data, sigma):
   '''
   calculates the weight matrix W
+  data: the observed data stored as an n x D matrix, where n is the number of
+        samples and D is the dimension of the data space
+  sigma: the kernel width
   '''
 
   pairwise_sq_dists = squareform(pdist(data, 'sqeuclidean'))
@@ -122,6 +129,11 @@ def calc_W(data, sigma):
 def calc_vars(data, W, sigma, n_eigenvectors):
   '''
   calculates phi and Sigma
+  data: the observed data stored as an n x D matrix, where n is the number of
+         samples and D is the dimension of the data space
+  W: the weight matrix of the data
+  sigma: the kernel width
+  n_eigenvectors: the number of eigenvectors to compute
   '''
 
   ones = np.ones(W.shape[0])
@@ -142,7 +154,10 @@ def calc_vars(data, W, sigma, n_eigenvectors):
 
 def calculate_corr(v_i, v_j):
   '''
-  calculates proximity of v_i to v_j
+  calculates the correlation between vectors v_i and v_j
+
+  S(v_i, v_j) = < v_i/||v_i||, v_j/||v_j|| >
+  where S is the "similarity" function described in the paper
   '''
 
   # normalize vectors to unit norm
@@ -154,6 +169,14 @@ def calculate_corr(v_i, v_j):
   return corr # score
 
 def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
+  '''
+  computes the triplets which have the highest similarity scores
+
+  returns:
+  best_matches: a dictionary of triplets indexed by the product eigenvector
+  max_corrs: a dictionary of the triplet correlations indexed by the product eigenvector
+  all_corrs: all of the correlations for each product eigenvector 1...n_eigenvectors
+  '''
   best_matches = {}
   max_corrs = {}
   all_corrs = {}
@@ -205,12 +228,20 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, verbose=False):
+def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K,
+                       n_comps=2, verbose=False):
   '''
   clusters eigenvectors into two separate groups
+
+  returns:
+  labels: a 2 x m array where m is the number of factor eigenvectors identified
+          the first row of the array contains the indices of each factor eigenvector
+          the second row of the array contains the label of the manifold factor
+          to which the factor eigenvector corresponds
+  C: the separability matrix
   '''
   votes = np.zeros(n_eigenvectors)
-  W = np.zeros((n_eigenvectors, n_eigenvectors))
+  C = np.zeros((n_eigenvectors, n_eigenvectors))
 
   if verbose:
     print('{:10} {:>7} {:>7}'.format('Combo', 'Match', 'Corr'))
@@ -220,30 +251,30 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, v
     if verbose:
       print('{:10} {:7} {:7}'.format(str(combo), match, np.around(best_corrs[match], 3)))
     for pair in list(combinations(combo, 2)):
-      W[pair[0]][pair[1]] += best_corrs[match]
-      W[pair[1]][pair[0]] += best_corrs[match]
+      C[pair[0]][pair[1]] += best_corrs[match]
+      C[pair[1]][pair[0]] += best_corrs[match]
       votes[pair[0]] += best_corrs[match]
       votes[pair[1]] += best_corrs[match]
 
-  if verbose:
-    print("\nVotes:\n", votes)
-
   # perform spectral clustering based on independent vectors
-  independent = np.where(votes>K)[0]
-  n = len(independent)
-  W_ = np.ones((n, n))
-  for i in range(W_.shape[0]):
-    for j in range(W_.shape[1]):
+  factors = np.where(votes>0)[0]
+  n = len(factors)
+  C_ = np.ones((n, n))
+  for i in range(C_.shape[0]):
+    for j in range(C_.shape[1]):
       if i == j:
-        W_[i][j] = 0
+        C_[i][j] = 0
       else:
-        W_[i][j] = W[independent[i]][independent[j]]
+        C_[i][j] = C[factors[i]][factors[j]]
+
+  if verbose:
+    print("\nSeparability matrix:\n", np.around(C_, 3))
 
   np.random.seed(1)
   if n_comps == 2:
     Y = cp.Variable((n, n), PSD=True)
     constraints = [cp.diag(Y) == 1]
-    obj = 0.5 * cp.sum(cp.multiply(W_, np.ones((n, n)) - Y))
+    obj = 0.5 * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
     prob = cp.Problem(cp.Maximize(obj), constraints)
     prob.solve()
 
@@ -254,8 +285,8 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, v
     partition = np.random.normal(size=n)
     projections = assignment.T @ partition
 
-    labels = np.zeros((2, len(independent)), dtype='int')
-    labels[0,:] = independent
+    labels = np.zeros((2, n), dtype='int')
+    labels[0,:] = factors
     for i in range(n):
       labels[1][i] = 1 if projections[i] >= 0 else 0
 
@@ -270,7 +301,7 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, v
         if j is not i:
           constraints += [Y[i,j] >= -1 / (n_comps - 1)]
 
-    obj = (1 - 1 / n_comps) * cp.sum(cp.multiply(W_, np.ones((n, n)) - Y))
+    obj = (1 - 1 / n_comps) * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
     prob = cp.Problem(cp.Maximize(obj), constraints)
     prob.solve()
 
@@ -287,16 +318,24 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K, n_comps=2, v
     theta = np.arctan2((g_assignment_), (g_assignment))
     z = 2 * np.pi * np.random.random()
 
-    labels = np.zeros((2, len(independent)), dtype='int')
-    labels[0,:] = independent
+    labels = np.zeros((2, n), dtype='int')
+    labels[0,:] = factors
     for i in range(n):
       labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_comps))
 
     # plot_k_cut(labels, n_comps, theta, z)
 
-  return labels
+  return labels, C
 
 def get_mixture_eigenvectors(manifolds, n_eigenvectors):
+  '''
+  returns the a list of product eigenvectors out of the first n_eigenvectors,
+  given a manifold factorization
+
+  manifolds: a list of lists, each sublist contains the indices of factor
+             eigenvectors corresponding to a manifold factor
+  n_eigenvectors: the number of eigenvectors
+  '''
   mixtures = []
   for i in range(1, n_eigenvectors):
     is_mixture = True
