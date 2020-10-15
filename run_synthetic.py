@@ -60,7 +60,7 @@ def do_generate_plots(image_dir, test_name, datatype, dimensions, phi, Sigma, da
 
   # plot mixture eigenvector correlations
   mixtures = get_mixture_eigenvectors(manifolds, n_eigenvectors)
-  steps = [5, 95, 18]
+  steps = [5, 95, 15]
   print("Plotting select mixture correlations...")
   plot_mixture_correlations(mixtures, phi, Sigma, steps,
                             filename=image_dir + 'mixture_correlations_{}.pdf'.format(test_name))

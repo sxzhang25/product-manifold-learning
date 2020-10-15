@@ -65,7 +65,7 @@ def do_generate_plots(image_dir, test_name, image_data, raw_data, x, y, phi, Sig
   print("Plotting select mixture correlations...")
   plot_mixture_correlations(mixtures, phi, Sigma, steps,
                             filename=image_dir + 'mixture_correlations_{}.pdf'.format(test_name))
-
+  
   # plot C matrix organized by manifold
   print("Plotting C matrix...")
   plot_C_matrix(manifolds, C=C,
