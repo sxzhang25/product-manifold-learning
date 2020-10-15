@@ -31,7 +31,7 @@ def main():
   corr_thresh = params['corr_thresh']
   K = params['K']
 
-  generate_plots = False # if set to true, plots will be created and saved
+  generate_plots = True # if set to true, plots will be created and saved
 
   # generate or load data
   data_dir = './data/' # make sure this directory exists!
@@ -117,17 +117,6 @@ def main():
     pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
   print("Done")
 
-  # plot voting matrix
-  image_dir = './images/'
-  # plot mixture eigenvector correlations
-  mixtures = get_mixture_eigenvectors(manifolds, n_eigenvectors)
-  steps = [5, 95, 18]
-  print("Plotting select mixture correlations...")
-  plot_mixture_correlations(mixtures, phi, Sigma, steps,
-                            filename=image_dir + 'mixture_correlations_{}.png'.format(test_name))
-  plot_C_matrix(manifolds, C,
-                filename=image_dir + '{}_C_matrix.png'.format(test_name))
-
   # generate plots
   if generate_plots:
     print("\nGenerating plots...")
@@ -137,14 +126,14 @@ def main():
     print("Plotting original data...")
     if datatype == "torus":
       dimensions = [2 * dimensions[0], 2 * dimensions[0], 2 * dimensions[1]]
-    plot_synthetic_data(data, dimensions,
-                        filename=image_dir + '{}_original_data.png'.format(test_name))
+    plot_synthetic_data(data, dimensions, azim=-30, elev=30,
+                        filename=image_dir + '{}_original_data.pdf'.format(test_name))
 
     # plot eigenvectors
     vecs = [phi[:,i] for i in range(n_eigenvectors)]
     num_eigs_to_plot = 25
     print("Plotting first {} eigenvectors...".format(num_eigs_to_plot))
-    eigenvectors_filename = image_dir + test_name + '_eigenvalues_' + str(num_eigs_to_plot) + '.png'
+    eigenvectors_filename = image_dir + test_name + '_eigenvalues_' + str(num_eigs_to_plot) + '.pdf'
     plot_eigenvectors(data_gt, dimensions, vecs[:num_eigs_to_plot],
                       labels=[int(i) for i in range(num_eigs_to_plot)],
                       title='Laplace Eigenvectors',
@@ -162,7 +151,7 @@ def main():
       plot_eigenvectors(data_gt, dimensions, vecs[:5],
                         full=False,
                         labels=[int(j) for j in manifolds[m]],
-                        filename=image_dir + 'manifold{}_{}.png'.format(m, test_name),
+                        filename=image_dir + 'manifold{}_{}.pdf'.format(m, test_name),
                         offset_scale=0,
                         elev=30,
                         azim=-30)
@@ -170,23 +159,28 @@ def main():
     # plot 2d and 3d laplacian eigenmaps of each manifold
     for m in range(len(manifolds)):
       print("Plotting 2d laplacian eigenmap for manifold {}...".format(m + 1))
-      plot_embedding(phi, manifolds[m][:min(2, len(manifolds[0]))],
-                     filename=image_dir + 'embedding{}_{}_2d.png'.format(m, test_name))
+      plot_embedding(data_gt[:,m], phi, manifolds[m][:min(2, len(manifolds[0]))],
+                     filename=image_dir + 'embedding{}_{}_2d.pdf'.format(m, test_name))
       print("Plotting 3d laplacian eigenmap for manifold {}...".format(m + 1))
-      plot_embedding(phi, manifolds[m][:min(3, len(manifolds[0]))],
-                     filename=image_dir + 'embedding{}_{}_3d.png'.format(m, test_name))
+      plot_embedding(data_gt[:,m], phi, manifolds[m][:min(3, len(manifolds[0]))],
+                     filename=image_dir + 'embedding{}_{}_3d.pdf'.format(m, test_name))
 
     # plot correlations of best triplets
     print("Plotting all triplet correlations...")
     plot_triplet_correlations(all_corrs, thresh=corr_thresh,
-                              filename=image_dir + 'triplet_correlations_{}.png'.format(test_name))
+                              filename=image_dir + 'triplet_correlations_{}.pdf'.format(test_name))
 
     # plot mixture eigenvector correlations
     mixtures = get_mixture_eigenvectors(manifolds, n_eigenvectors)
     steps = [5, 95, 18]
     print("Plotting select mixture correlations...")
     plot_mixture_correlations(mixtures, phi, Sigma, steps,
-                              filename=image_dir + 'mixture_correlations_{}.png'.format(test_name))
+                              filename=image_dir + 'mixture_correlations_{}.pdf'.format(test_name))
+
+    # plot C matrix organized by manifold
+    print("Plotting C matrix...")
+    plot_C_matrix(manifolds, C=C,
+                  filename=image_dir + '{}_C_matrix.pdf'.format(test_name))
 
 if __name__ == "__main__":
   main()
