@@ -219,41 +219,43 @@ def plot_triplet_correlations(corrs, thresh=None, filename=None):
     plt.savefig(filename)
   plt.show()
 
-def plot_embedding(phi, dims, filename=None):
+def plot_embedding(data_gt, phi, dims, filename=None):
   if len(dims) is 0:
     return
   fig = plt.figure()
   if len(dims) == 2:
     ax = fig.add_subplot(111)
-    ax.scatter(phi[:,dims[0]], phi[:,dims[1]], s=5)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    g = ax.scatter(phi[:,dims[0]], phi[:,dims[1]], s=5, c=data_gt)
+    cb = plt.colorbar(g)
   else:
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    g = ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5, c=data_gt)
+    cb = plt.colorbar(g)
   if filename:
     plt.savefig(filename)
   plt.show()
 
-def plot_mixture_correlations(mixtures, phi, Sigma, steps, filename=None):
+def plot_mixture_correlations(mixtures, phi, Sigma, steps, n_comps=2, filename=None):
   start, end, skip = steps
   num_plots = (end - start) // skip
-  fig = plt.figure(figsize=(2 * num_plots, 5))
-  gs = gridspec.GridSpec(3, num_plots)
+  fig = plt.figure(figsize=(3 * num_plots, 2))
   plt.rc('xtick', labelsize=12)
   plt.rc('ytick', labelsize=12)
   for i,index in enumerate(mixtures[start:end:skip]):
-    # ax1 = fig.add_subplot(3, num_plots, i + 1)
-    # ax2 = fig.add_subplot(3, num_plots, i + 1 + 2 * num_plots)
-    ax1 = plt.subplot(gs[:2, i])
-    ax2 = plt.subplot(gs[-1, i])
+    ax = fig.add_subplot(1, num_plots, i + 1)
     corrs = []
     eigs = []
     v = phi[:,index]
     lambda_v = Sigma[index]
-    for m in range(2, 3): # (1, n_comps + 1)
+    for m in range(2, n_comps + 1):
       for combo in list(combinations(np.arange(1, index), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
-        lambda_diff = abs(lambda_v - lambda_sum)
+        lambda_diff = lambda_v - lambda_sum
         eigs.append(lambda_diff)
 
         # get product of proposed base eigenvectors
@@ -269,23 +271,20 @@ def plot_mixture_correlations(mixtures, phi, Sigma, steps, filename=None):
         corr = max(corr, dcorr)
         corrs.append(corr)
 
-    ax1.set_title(i, fontsize=12)
-    ax1.set_xlim(0, 1)
-    ax1.get_xaxis().set_ticks([])
-    ax1.get_yaxis().set_ticks([])
-
-    counts, _, _ = ax1.hist(corrs, 50, density=True)
-    max_corr = np.max(corrs)
-    ax1.annotate('{}'.format(np.around(max_corr, 2)),
-                 xy=(max_corr, 0),
-                 xytext=(max_corr - 0.25, 0.25 * np.max(counts)),
+    best_corr = np.max(corrs)
+    best_eig_err = eigs[np.argmax(corrs)]
+    ax.annotate('{}'.format(np.around(best_corr, 2)),
+                 xy=(best_corr, best_eig_err),
+                 xytext=(best_corr - 0.1, 0.75 * np.max(eigs)),
                  fontsize=12,
                  arrowprops=dict(arrowstyle='->',
                             color='r'))
-
-    ax2.set_xlim(0, 1)
-    ax2.get_xaxis().set_ticks([0.0, 0.5, 1.0])
-    ax2.scatter(corrs, eigs, s=3)
+    ax.set_title(i)
+    ax.set_xlim(0, 1)
+    ax.get_xaxis().set_ticks([])
+    fig.text(0, 0.5, r'$\lambda_i + \lambda_j - \lambda_k$',
+             va='center', rotation='vertical')
+    ax.scatter(corrs, eigs, s=3)
   plt.tight_layout(pad=0.5)
   if filename:
     plt.savefig(filename)
