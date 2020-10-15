@@ -227,14 +227,16 @@ def plot_embedding(data_gt, phi, dims, filename=None):
     ax = fig.add_subplot(111)
     ax.set_xticks([])
     ax.set_yticks([])
-    g = ax.scatter(phi[:,dims[0]], phi[:,dims[1]], s=5, c=data_gt)
-    cb = plt.colorbar(g)
+    ax.axis('off')
+    ax.scatter(phi[:,dims[0]], phi[:,dims[1]],
+               s=5, c=data_gt, cmap='hsv')
   else:
     ax = fig.add_subplot(111, projection='3d')
+    ax.axis('off')
     ax.set_xticks([])
     ax.set_yticks([])
-    g = ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5, c=data_gt)
-    cb = plt.colorbar(g)
+    ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]],
+               s=5, c=data_gt, cmap='hsv')
   if filename:
     plt.savefig(filename)
   plt.show()
@@ -242,17 +244,17 @@ def plot_embedding(data_gt, phi, dims, filename=None):
 def plot_mixture_correlations(mixtures, phi, Sigma, steps, n_comps=2, filename=None):
   start, end, skip = steps
   num_plots = (end - start) // skip
-  fig = plt.figure(figsize=(3 * num_plots, 2))
-  plt.rc('xtick', labelsize=12)
-  plt.rc('ytick', labelsize=12)
-  for i,index in enumerate(mixtures[start:end:skip]):
-    ax = fig.add_subplot(1, num_plots, i + 1)
+  rows, cols = [2, int(np.ceil(num_plots / 2))]
+  plt.rcParams.update({ "text.usetex": True, })
+  fig, axs = plt.subplots(rows, cols, figsize=(1.5 * num_plots, 4), sharex=True)
+  for index,eig_index in enumerate(mixtures[start:end:skip]):
+    ax = axs[index // cols, index % cols]
     corrs = []
     eigs = []
-    v = phi[:,index]
-    lambda_v = Sigma[index]
+    v = phi[:,eig_index]
+    lambda_v = Sigma[eig_index]
     for m in range(2, n_comps + 1):
-      for combo in list(combinations(np.arange(1, index), m)):
+      for combo in list(combinations(np.arange(1, eig_index), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
         lambda_diff = lambda_v - lambda_sum
@@ -276,14 +278,16 @@ def plot_mixture_correlations(mixtures, phi, Sigma, steps, n_comps=2, filename=N
     ax.annotate('{}'.format(np.around(best_corr, 2)),
                  xy=(best_corr, best_eig_err),
                  xytext=(best_corr - 0.1, 0.75 * np.max(eigs)),
-                 fontsize=12,
                  arrowprops=dict(arrowstyle='->',
                             color='r'))
-    ax.set_title(i)
+    ax.set_title(eig_index)
     ax.set_xlim(0, 1)
-    ax.get_xaxis().set_ticks([])
-    fig.text(0, 0.5, r'$\lambda_i + \lambda_j - \lambda_k$',
-             va='center', rotation='vertical')
+    if index // cols == rows - 1:
+      ax.get_xaxis().set_ticks([0, 0.5, 1.0])
+    else:
+      ax.get_xaxis().set_ticks([])
+    if index % cols == 0:
+      ax.set_ylabel(r'$\lambda_i + \lambda_j - \lambda_k$')
     ax.scatter(corrs, eigs, s=3)
   plt.tight_layout(pad=0.5)
   if filename:
