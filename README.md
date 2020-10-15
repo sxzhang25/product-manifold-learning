@@ -52,7 +52,7 @@ The format of parameters for geometric data is:
 * `n_eigenvectors`: The number of eigenvectors to compute.
 * `lambda_thresh`: The threshold for the eigenvalue criterion (see Section 3.1 of the paper for more details).
 * `corr_thresh`: The threshold for the correlation criterion (see Section 3.1 of the paper for more details).
-* `K`: The number of votes needed to pass the caucusing step (see Section 3.2 of the paper for more details).
+* `K`: The number of votes needed to pass the caucusing step (default value is 0).
 
 The format of parameters for cryo-EM data is:
 * `test_name`: A user-defined name for the experiment, used for naming saved figures.
@@ -67,4 +67,4 @@ The format of parameters for cryo-EM data is:
 * `n_eigenvectors`: The number of eigenvectors to compute.
 * `lambda_thresh`: The threshold for the eigenvalue criterion (see Section 3.1 of the paper for more details).
 * `corr_thresh`: The threshold for the correlation criterion (see Section 3.1 of the paper for more details).
-* `K`: The number of votes needed to pass the caucusing step (see Section 3.2 of the paper for more details).
+* `K`: The number of votes needed to pass the caucusing step (default value is 0).
