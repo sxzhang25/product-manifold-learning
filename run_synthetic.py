@@ -6,6 +6,70 @@ import pickle
 from synthetic import *
 from plots import *
 
+def do_generate_plots(image_dir, test_name, datatype, dimensions, phi, Sigma, data,
+                      data_gt, n_eigenvectors, info, all_corrs, corr_thresh, C):
+  print("\nGenerating plots...")
+
+  # plot original data
+  print("Plotting original data...")
+  if datatype == "torus":
+    dimensions = [2 * dimensions[0], 2 * dimensions[0], 2 * dimensions[1]]
+  plot_synthetic_data(data, dimensions, azim=-30, elev=30,
+                      filename=image_dir + '{}_original_data.pdf'.format(test_name))
+
+  # plot eigenvectors
+  vecs = [phi[:,i] for i in range(n_eigenvectors)]
+  num_eigs_to_plot = 25
+  print("Plotting first {} eigenvectors...".format(num_eigs_to_plot))
+  eigenvectors_filename = image_dir + test_name + '_eigenvalues_' + str(num_eigs_to_plot) + '.pdf'
+  plot_eigenvectors(data_gt, dimensions, vecs[:num_eigs_to_plot],
+                    labels=[int(i) for i in range(num_eigs_to_plot)],
+                    title='Laplace Eigenvectors',
+                    filename=eigenvectors_filename)
+
+  # plot manifolds
+  manifolds = info['manifolds']
+  independent_vecs = []
+  for manifold in manifolds:
+    vecs = [phi[:,int(i)] for i in manifold]
+    independent_vecs.append(vecs)
+
+  for m,vecs in enumerate(independent_vecs):
+    print("Plotting eigenvectors for manifold {}...".format(m + 1))
+    plot_eigenvectors(data_gt, dimensions, vecs[:5],
+                      full=False,
+                      labels=[int(j) for j in manifolds[m]],
+                      filename=image_dir + 'manifold{}_{}.pdf'.format(m, test_name),
+                      offset_scale=0,
+                      elev=30,
+                      azim=-30)
+
+  # plot 2d and 3d laplacian eigenmaps of each manifold
+  for m in range(len(manifolds)):
+    print("Plotting 2d laplacian eigenmap for manifold {}...".format(m + 1))
+    plot_embedding(data_gt[:,m], phi, manifolds[m][:min(2, len(manifolds[0]))],
+                   filename=image_dir + 'embedding{}_{}_2d.pdf'.format(m, test_name))
+    print("Plotting 3d laplacian eigenmap for manifold {}...".format(m + 1))
+    plot_embedding(data_gt[:,m], phi, manifolds[m][:min(3, len(manifolds[0]))],
+                   filename=image_dir + 'embedding{}_{}_3d.pdf'.format(m, test_name))
+
+  # plot correlations of best triplets
+  print("Plotting all triplet correlations...")
+  plot_triplet_correlations(all_corrs, thresh=corr_thresh,
+                            filename=image_dir + 'triplet_correlations_{}.pdf'.format(test_name))
+
+  # plot mixture eigenvector correlations
+  mixtures = get_mixture_eigenvectors(manifolds, n_eigenvectors)
+  steps = [5, 95, 18]
+  print("Plotting select mixture correlations...")
+  plot_mixture_correlations(mixtures, phi, Sigma, steps,
+                            filename=image_dir + 'mixture_correlations_{}.pdf'.format(test_name))
+
+  # plot C matrix organized by manifold
+  print("Plotting C matrix...")
+  plot_C_matrix(manifolds, C=C,
+                filename=image_dir + '{}_C_matrix.pdf'.format(test_name))
+
 def main():
   # load and unpack parameters
   datafile = sys.argv[1]
@@ -119,68 +183,9 @@ def main():
 
   # generate plots
   if generate_plots:
-    print("\nGenerating plots...")
     image_dir = './images/'
-
-    # plot original data
-    print("Plotting original data...")
-    if datatype == "torus":
-      dimensions = [2 * dimensions[0], 2 * dimensions[0], 2 * dimensions[1]]
-    plot_synthetic_data(data, dimensions, azim=-30, elev=30,
-                        filename=image_dir + '{}_original_data.pdf'.format(test_name))
-
-    # plot eigenvectors
-    vecs = [phi[:,i] for i in range(n_eigenvectors)]
-    num_eigs_to_plot = 25
-    print("Plotting first {} eigenvectors...".format(num_eigs_to_plot))
-    eigenvectors_filename = image_dir + test_name + '_eigenvalues_' + str(num_eigs_to_plot) + '.pdf'
-    plot_eigenvectors(data_gt, dimensions, vecs[:num_eigs_to_plot],
-                      labels=[int(i) for i in range(num_eigs_to_plot)],
-                      title='Laplace Eigenvectors',
-                      filename=eigenvectors_filename)
-
-    # plot manifolds
-    manifolds = info['manifolds']
-    independent_vecs = []
-    for manifold in manifolds:
-      vecs = [phi[:,int(i)] for i in manifold]
-      independent_vecs.append(vecs)
-
-    for m,vecs in enumerate(independent_vecs):
-      print("Plotting eigenvectors for manifold {}...".format(m + 1))
-      plot_eigenvectors(data_gt, dimensions, vecs[:5],
-                        full=False,
-                        labels=[int(j) for j in manifolds[m]],
-                        filename=image_dir + 'manifold{}_{}.pdf'.format(m, test_name),
-                        offset_scale=0,
-                        elev=30,
-                        azim=-30)
-
-    # plot 2d and 3d laplacian eigenmaps of each manifold
-    for m in range(len(manifolds)):
-      print("Plotting 2d laplacian eigenmap for manifold {}...".format(m + 1))
-      plot_embedding(data_gt[:,m], phi, manifolds[m][:min(2, len(manifolds[0]))],
-                     filename=image_dir + 'embedding{}_{}_2d.pdf'.format(m, test_name))
-      print("Plotting 3d laplacian eigenmap for manifold {}...".format(m + 1))
-      plot_embedding(data_gt[:,m], phi, manifolds[m][:min(3, len(manifolds[0]))],
-                     filename=image_dir + 'embedding{}_{}_3d.pdf'.format(m, test_name))
-
-    # plot correlations of best triplets
-    print("Plotting all triplet correlations...")
-    plot_triplet_correlations(all_corrs, thresh=corr_thresh,
-                              filename=image_dir + 'triplet_correlations_{}.pdf'.format(test_name))
-
-    # plot mixture eigenvector correlations
-    mixtures = get_mixture_eigenvectors(manifolds, n_eigenvectors)
-    steps = [5, 95, 18]
-    print("Plotting select mixture correlations...")
-    plot_mixture_correlations(mixtures, phi, Sigma, steps,
-                              filename=image_dir + 'mixture_correlations_{}.pdf'.format(test_name))
-
-    # plot C matrix organized by manifold
-    print("Plotting C matrix...")
-    plot_C_matrix(manifolds, C=C,
-                  filename=image_dir + '{}_C_matrix.pdf'.format(test_name))
+    do_generate_plots(image_dir, test_name, datatype, dimensions, phi, Sigma, data,
+                      data_gt, n_eigenvectors, info, all_corrs, corr_thresh, C)
 
 if __name__ == "__main__":
   main()
