@@ -103,8 +103,10 @@ def get_gt_data(data, datatype):
     data_gt = data[:,:2]
   elif datatype == 'torus':
     data_gt = np.zeros((data.shape[0],2))
-    data_gt[:,0] = np.arctan2(data[:,1], data[:,0])
-    data_gt[:,1] = np.arctan2(data[:,3], data[:,2])
+    data_gt[:,0] = np.arctan2(data[:,1] - np.mean(data[:,1]),
+                              data[:,0] - np.mean(data[:,0]))
+    data_gt[:,1] = np.arctan2(data[:,3] - np.mean(data[:,3]),
+                              data[:,2] - np.mean(data[:,2]))
   else:
     data_gt = data
 
@@ -181,7 +183,7 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
   max_corrs = {}
   all_corrs = {}
 
-  for k in range(2, phi.shape[1]):
+  for k in range(2, phi.shape[1]): # k is the proposed product eigenvector
     # show progress
     if (k % 10 == 0):
       sys.stdout.write('\r')
@@ -193,7 +195,9 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
     max_corr = 0
     best_match = []
 
-    for m in range(2, 3): # (1, n_comps + 1)
+    # iterate over all possible number of factors in the eigenvector factorization
+    for m in range(2, n_comps + 1):
+      # iterate over all possible factorizations
       for combo in list(combinations(np.arange(1, k), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
