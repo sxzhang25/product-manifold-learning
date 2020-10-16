@@ -119,7 +119,7 @@ def main():
     info['image_data'] = image_data
     info['raw_data'] = raw_data
 
-  if test_name == "cryo_em_x-theta" or test_name == "cryo_em_x-theta_noisy":
+  if test_name == "cryo-em_x-theta" or test_name == "cryo-em_x-theta_noisy":
     raw_data = raw_data[:,[0,2]]
 
   np.random.seed(255)
