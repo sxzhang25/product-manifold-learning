@@ -112,14 +112,6 @@ def main():
     phi = info['phi']
     Sigma = info['Sigma']
 
-    print("\nLoading matches and distances...")
-    best_matches = info['best_matches']
-    best_corrs = info['best_corrs']
-    all_corrs = info['all_corrs']
-
-    # get the 'ground truth' data (true manifolds used to generate data)
-    data_gt = get_gt_data(data, datatype)
-
   else:
     # create a dictionary to store all information in
     info = {}
@@ -132,7 +124,6 @@ def main():
                                    datatype=datatype,
                                    seed=seed)
     info['data'] = data
-    data_gt = get_gt_data(data, datatype)
 
     # compute eigenvectors
     print("\nComputing eigenvectors...")
@@ -146,6 +137,9 @@ def main():
     info['Sigma'] = Sigma
 
   np.random.seed(255)
+
+  # get the 'ground truth' data (true manifolds used to generate data)
+  data_gt = get_gt_data(data, datatype)
 
   # find combos
   print("\nComputing combos...")
