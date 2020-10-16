@@ -1,12 +1,20 @@
 /*
 !.gitignore
+!README.md
 
 !/data/
 /data/*
 !/data/fakekv_data
-!/params/
-!fakekv.py
-!run_*
+!/params*
+!/configs*
+
+!/fakekv.py
+!/utils.py
+!/plots.py
+!/run_experiments.py
+!/generate_data.py
+!/algorithm.py
+!/figures.py
 
 drafts/
 images/

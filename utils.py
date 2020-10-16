@@ -1,3 +1,5 @@
+# helper methods for the algorithm.
+
 import numpy as np
 import sys
 import matplotlib.colors as colors
@@ -9,87 +11,6 @@ from scipy.stats.stats import pearsonr
 from scipy.spatial.distance import pdist, squareform
 from sklearn.utils.extmath import randomized_svd
 from mpl_toolkits.mplot3d import Axes3D
-
-from plots import *
-
-###
-# synthetic.py
-#
-# Generate synthetic random data sampled from a toy product manifold and compute
-# the Laplacian, eigenvalues, and independent manifolds of the data
-###
-
-def generate_synthetic_data(dimensions, n_samples, datatype='rectangle',
-                            seed=0, noise=0.05):
-  '''
-  generates uniform random data from simple geometric manifolds
-  dimensions: the dimensions of the data
-  num_samples: the number of samples to generate
-  seed: the random seed for generating the data
-  type: the type of data to generate
-  '''
-
-  np.random.seed(seed)
-
-  if datatype=='rectangle':
-    # rectangle
-    l1, l2 = dimensions
-    line1_data = l1 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    line2_data = l2 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    data = np.column_stack((line1_data, line2_data))
-
-  elif datatype=='rectangle3d':
-    # rectangle
-    l1, l2, z_noise = dimensions
-    line1_data = l1 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    line2_data = l2 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    line3_data = np.random.normal(scale=z_noise, size=n_samples)
-    data = np.column_stack((line1_data, line2_data, line3_data))
-
-  elif datatype=='line_circle':
-    # hollow cylinder
-    l1, l2 = dimensions
-    line_data = l1 * (np.random.rand(n_samples) +  \
-                      np.random.normal(scale=noise, size=n_samples))
-    circle_data = np.empty((n_samples,2))
-    theta = 2 * np.pi * np.random.rand(n_samples)
-    circle_data[:,0] = (l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
-    circle_data[:,1] = (l2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
-    data = np.column_stack((line_data, circle_data))
-
-  elif datatype=='cube':
-    # cube
-    l1, l2, l3 = dimensions
-    line1_data = l1 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    line2_data = l2 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    line3_data = l3 * (np.random.rand(n_samples) +  \
-                       np.random.normal(scale=noise, size=n_samples))
-    data = np.column_stack((line1_data, line2_data, line3_data))
-
-  elif datatype=='torus':
-    #torus
-    r1, r2 = dimensions
-    circle1_data = np.empty((n_samples,2))
-    theta = 2 * np.pi * np.random.rand(n_samples)
-    circle1_data[:,0] = r1 + (r1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
-    circle1_data[:,1] = r1 + (r1 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
-    circle2_data = np.empty((n_samples,2))
-    theta = 2 * np.pi * np.random.rand(n_samples)
-    circle2_data[:,0] = r2 + (r2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.cos(theta)
-    circle2_data[:,1] = r2 + (r2 + noise * np.random.normal(scale=noise, size=n_samples)) * np.sin(theta)
-    data = np.column_stack((circle1_data, circle2_data))
-
-  else:
-    print('Error: invalid data type')
-    return
-
-  return data
 
 def get_gt_data(data, datatype):
   '''
@@ -103,14 +24,22 @@ def get_gt_data(data, datatype):
     data_gt = data[:,:2]
   elif datatype == 'torus':
     data_gt = np.zeros((data.shape[0],2))
-    data_gt[:,0] = np.arctan2(data[:,1] - np.mean(data[:,1]),
-                              data[:,0] - np.mean(data[:,0]))
-    data_gt[:,1] = np.arctan2(data[:,3] - np.mean(data[:,3]),
-                              data[:,2] - np.mean(data[:,2]))
+    data_gt[:,0] = np.pi + np.arctan2(data[:,1] - np.mean(data[:,1]),
+                                      data[:,0] - np.mean(data[:,0]))
+    data_gt[:,1] = np.pi + np.arctan2(data[:,3] - np.mean(data[:,3]),
+                                      data[:,2] - np.mean(data[:,2]))
   else:
     data_gt = data
 
   return data_gt
+
+def downsample_data(data, l):
+  '''
+  downsamples data with resolution L * L to resolution l * l
+  '''
+  stride = L // l
+  lowres_data = data[:,::stride,::stride]
+  return lowres_data
 
 ###
 # COMPUTE EIGENVECTORS
@@ -164,10 +93,9 @@ def calc_vars(data, W, sigma, n_eigenvectors, uniform=True):
 # FIND BEST EIGENVECTOR COMBOS
 ###
 
-def calculate_corr(v_i, v_j):
+def calculate_sim(v_i, v_j):
   '''
-  calculates the correlation between vectors v_i and v_j
-
+  calculates the similarity score between vectors v_i and v_j
   S(v_i, v_j) = < v_i/||v_i||, v_j/||v_j|| >
   where S is the "similarity" function described in the paper
   '''
@@ -177,21 +105,20 @@ def calculate_corr(v_i, v_j):
   v_j /= np.linalg.norm(v_j)
 
   # calculate L2 distance between v1 and v2
-  corr = np.dot(v_i, v_j)
-  return corr # score
+  sim = np.dot(v_i, v_j)
+  return sim # score
 
-def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
+def find_combos(phi, Sigma, n_factors=2, eig_crit=10e-3, sim_crit=0.5):
   '''
   computes the triplets which have the highest similarity scores
-
   returns:
   best_matches: a dictionary of triplets indexed by the product eigenvector
-  max_corrs: a dictionary of the triplet correlations indexed by the product eigenvector
-  all_corrs: all of the correlations for each product eigenvector 1...n_eigenvectors
+  max_sims: a dictionary of the triplet correlations indexed by the product eigenvector
+  all_sims: all of the correlations for each product eigenvector 1...n_eigenvectors
   '''
   best_matches = {}
-  max_corrs = {}
-  all_corrs = {}
+  max_sims = {}
+  all_sims = {}
 
   for k in range(2, phi.shape[1]): # k is the proposed product eigenvector
     # show progress
@@ -202,51 +129,50 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
 
     v_k = phi[:,k]
     lambda_k = Sigma[k]
-    max_corr = 0
+    max_sim = 0
     best_match = []
 
     # iterate over all possible number of factors in the eigenvector factorization
-    for m in range(2, n_comps + 1):
+    for m in range(2, n_factors + 1):
       # iterate over all possible factorizations
       for combo in list(combinations(np.arange(1, k), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
         lambda_diff = abs(lambda_k - lambda_sum)
-        if lambda_diff < lambda_thresh:
+        if lambda_diff < eig_crit:
           # get product of proposed base eigenvectors
           v_combo = np.ones(phi.shape[0])
           for i in combo:
             v_combo *= phi[:,i]
 
           # test with positive
-          corr = calculate_corr(v_combo, v_k)
-          if corr > max_corr:
+          sim = calculate_sim(v_combo, v_k)
+          if sim > max_sim:
             best_match = combo
-            max_corr = corr
+            max_sim = sim
 
           # test with negative
-          dcorr = calculate_corr(v_combo, -v_k)
-          if corr > max_corr:
+          dsim = calculate_sim(v_combo, -v_k)
+          if sim > max_sim:
             best_match = combo
-            max_corr = corr
+            max_sim = sim
 
     if len(best_match) > 0:
-      all_corrs[k] = max_corr
-      if max_corr >= corr_thresh:
+      all_sims[k] = max_sim
+      if max_sim >= sim_crit:
         best_matches[k] = list(best_match)
-        max_corrs[k] = max_corr
+        max_sims[k] = max_sim
 
-  return best_matches, max_corrs, all_corrs
+  return best_matches, max_sims, all_sims
 
 ###
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
-                       n_comps=2, verbose=False):
+def split_eigenvectors(best_matches, best_sims, n_eigenvectors, K=0,
+                       n_factors=2, verbose=False):
   '''
   clusters eigenvectors into two separate groups
-
   returns:
   labels: a 2 x m array where m is the number of factor eigenvectors identified
           the first row of the array contains the indices of each factor eigenvector
@@ -258,17 +184,17 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
   C = np.zeros((n_eigenvectors, n_eigenvectors))
 
   if verbose:
-    print('{:10} {:>7} {:>7}'.format('Combo', 'Match', 'Corr'))
+    print('{:10} {:>7} {:>12}'.format('Combo', 'Match', 'Similarity'))
 
   for match in list(best_matches):
     combo = best_matches[match]
     if verbose:
-      print('{:10} {:7} {:7}'.format(str(combo), match, np.around(best_corrs[match], 3)))
+      print('{:10} {:7} {:12}'.format(str(combo), match, np.around(best_sims[match], 3)))
     for pair in list(combinations(combo, 2)):
-      C[pair[0]][pair[1]] += best_corrs[match]
-      C[pair[1]][pair[0]] += best_corrs[match]
-      votes[pair[0]] += best_corrs[match]
-      votes[pair[1]] += best_corrs[match]
+      C[pair[0]][pair[1]] += best_sims[match]
+      C[pair[1]][pair[0]] += best_sims[match]
+      votes[pair[0]] += best_sims[match]
+      votes[pair[1]] += best_sims[match]
 
   # perform spectral clustering based on independent vectors
   factors = np.where(votes>0)[0]
@@ -285,7 +211,7 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
     print("\nSeparability matrix:\n", np.around(C_, 3))
 
   np.random.seed(1)
-  if n_comps == 2:
+  if n_factors == 2:
     Y = cp.Variable((n, n), PSD=True)
     constraints = [cp.diag(Y) == 1]
     obj = 0.5 * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
@@ -304,7 +230,7 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
     for i in range(n):
       labels[1][i] = 1 if projections[i] >= 0 else 0
 
-  elif n_comps > 2:
+  elif n_factors > 2:
     # follow max k-cut heuristic according to:
     # https://drops.dagstuhl.de/opus/volltexte/2018/8309/pdf/OASIcs-SOSA-2018-13.pdf
 
@@ -313,9 +239,9 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
     for i in range(n):
       for j in range(n):
         if j is not i:
-          constraints += [Y[i,j] >= -1 / (n_comps - 1)]
+          constraints += [Y[i,j] >= -1 / (n_factors - 1)]
 
-    obj = (1 - 1 / n_comps) * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
+    obj = (1 - 1 / n_factors) * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
     prob = cp.Problem(cp.Maximize(obj), constraints)
     prob.solve()
 
@@ -335,17 +261,14 @@ def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
     labels = np.zeros((2, n), dtype='int')
     labels[0,:] = factors
     for i in range(n):
-      labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_comps))
-
-    # plot_k_cut(labels, n_comps, theta, z)
+      labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_factors))
 
   return labels, C
 
-def get_mixture_eigenvectors(manifolds, n_eigenvectors):
+def get_product_eigs(manifolds, n_eigenvectors):
   '''
   returns the a list of product eigenvectors out of the first n_eigenvectors,
   given a manifold factorization
-
   manifolds: a list of lists, each sublist contains the indices of factor
              eigenvectors corresponding to a manifold factor
   n_eigenvectors: the number of eigenvectors
