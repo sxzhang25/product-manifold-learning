@@ -1,3 +1,5 @@
+# helper methods for creating figures
+
 import numpy as np
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -7,13 +9,14 @@ from mpl_toolkits.mplot3d import Axes3D
 from itertools import combinations
 from scipy.linalg import block_diag
 
-import synthetic as syn
+from utils import *
 
 ###
 # PLOT DATA
 ###
 
-def plot_synthetic_data(data, dimensions, title=None, filename=None, azim=60, elev=30, proj_type='persp'):
+def plot_synthetic_data(data, dimensions, title=None, filename=None,
+                        azim=60, elev=30, proj_type='persp'):
   '''
   plot the original data
   '''
@@ -23,7 +26,8 @@ def plot_synthetic_data(data, dimensions, title=None, filename=None, azim=60, el
     ax = fig.add_subplot(111)
     ax.scatter(data[:,0], data[:,1], s=5)
   elif data.shape[1] == 3:
-    ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev, proj_type=proj_type)
+    ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev,
+                         proj_type=proj_type)
     x, y, z = dimensions
     axis_max = np.max(dimensions)
     ax.set_xlim3d((x - axis_max) / 2, (x + axis_max) / 2)
@@ -31,7 +35,8 @@ def plot_synthetic_data(data, dimensions, title=None, filename=None, azim=60, el
     ax.set_zlim3d((z - axis_max) / 2, (z + axis_max) / 2)
     ax.scatter(data[:,0], data[:,1], data[:,2], s=5, c=data[:,2])
   else:
-    ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev, proj_type=proj_type)
+    ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev,
+                         proj_type=proj_type)
     x, y, z = dimensions
     axis_max = np.max(dimensions)
     ax.set_xlim3d((x - axis_max) / 2, (x + axis_max) / 2)
@@ -97,7 +102,6 @@ def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, ti
                       filename=None, offset_scale=0.1, azim=60, elev=30, proj_type='persp'):
   '''
   plots the array eigenvectors
-
   eigenvectors: a list of eigenvectors
   '''
   rows = int(np.ceil(len(eigenvectors)**0.5))
@@ -121,7 +125,8 @@ def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, ti
               ax.set_title(labels[index])
     else:
       fig = plt.figure()
-      ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev, proj_type=proj_type)
+      ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev,
+                           proj_type=proj_type)
       x, y, z = dimensions
       axis_max = np.max(dimensions)
       offset = offset_scale * len(eigenvectors)
@@ -208,51 +213,54 @@ def plot_independent_eigenvectors(manifold1, manifold2,
     plt.savefig(filename)
   plt.show()
 
-def plot_triplet_correlations(corrs, thresh=None, filename=None):
-  counts, bins, patches = plt.hist(corrs.values(), 50, density=True)
+def plot_triplet_sims(sims, thresh=None, filename=None):
+  counts, bins, patches = plt.hist(sims.values(), 50, density=True)
   if thresh:
     plt.plot([thresh, thresh], [0, np.max(counts)], "k--", linewidth=1)
     plt.annotate('thresh = {}'.format(thresh), xy=(thresh + 0.01, np.max(counts)))
   plt.yticks([])
-  plt.title('Correlation density')
+  plt.title('Similarity score density')
   if filename:
     plt.savefig(filename)
   plt.show()
 
-def plot_embedding(data_gt, phi, dims, filename=None):
-  if len(dims) is 0:
+def plot_eigenmap(data_gt, phi, dims, filename=None):
+  if len(dims) < 2:
+    print("Unable to create eigenmap: not enough eigenvectors")
     return
   fig = plt.figure()
   if len(dims) == 2:
     ax = fig.add_subplot(111)
     ax.set_xticks([])
     ax.set_yticks([])
-    g = ax.scatter(phi[:,dims[0]], phi[:,dims[1]], s=5, c=data_gt)
-    cb = plt.colorbar(g)
+    ax.axis('off')
+    ax.scatter(phi[:,dims[0]], phi[:,dims[1]],
+               s=5, c=data_gt, cmap='hsv')
   else:
     ax = fig.add_subplot(111, projection='3d')
+    ax.axis('off')
     ax.set_xticks([])
     ax.set_yticks([])
-    g = ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]], s=5, c=data_gt)
-    cb = plt.colorbar(g)
+    ax.scatter(phi[:,dims[0]], phi[:,dims[1]], phi[:,dims[2]],
+               s=5, c=data_gt, cmap='hsv')
   if filename:
     plt.savefig(filename)
   plt.show()
 
-def plot_mixture_correlations(mixtures, phi, Sigma, steps, n_comps=2, filename=None):
+def plot_product_sims(mixtures, phi, Sigma, steps, n_comps=2, filename=None):
   start, end, skip = steps
   num_plots = (end - start) // skip
-  fig = plt.figure(figsize=(3 * num_plots, 2))
-  plt.rc('xtick', labelsize=12)
-  plt.rc('ytick', labelsize=12)
-  for i,index in enumerate(mixtures[start:end:skip]):
-    ax = fig.add_subplot(1, num_plots, i + 1)
-    corrs = []
+  rows, cols = [2, int(np.ceil(num_plots / 2))]
+  plt.rcParams.update({ "text.usetex": True, })
+  fig, axs = plt.subplots(rows, cols, figsize=(1.5 * num_plots, 4), sharex=True)
+  for index,eig_index in enumerate(mixtures[start:end:skip]):
+    ax = axs[index // cols, index % cols]
+    sims = []
     eigs = []
-    v = phi[:,index]
-    lambda_v = Sigma[index]
+    v = phi[:,eig_index]
+    lambda_v = Sigma[eig_index]
     for m in range(2, n_comps + 1):
-      for combo in list(combinations(np.arange(1, index), m)):
+      for combo in list(combinations(np.arange(1, eig_index), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
         lambda_diff = lambda_v - lambda_sum
@@ -264,27 +272,29 @@ def plot_mixture_correlations(mixtures, phi, Sigma, steps, n_comps=2, filename=N
           v_combo *= phi[:,i]
 
         # test with positive
-        corr = syn.calculate_corr(v_combo, v)
+        sim = calculate_sim(v_combo, v)
 
         # test with negative
-        dcorr = syn.calculate_corr(v_combo, -v)
-        corr = max(corr, dcorr)
-        corrs.append(corr)
+        dsim = calculate_sim(v_combo, -v)
+        sim = max(sim, dsim)
+        sims.append(sim)
 
-    best_corr = np.max(corrs)
-    best_eig_err = eigs[np.argmax(corrs)]
-    ax.annotate('{}'.format(np.around(best_corr, 2)),
-                 xy=(best_corr, best_eig_err),
-                 xytext=(best_corr - 0.1, 0.75 * np.max(eigs)),
-                 fontsize=12,
+    best_sim = np.max(sims)
+    best_eig_err = eigs[np.argmax(sims)]
+    ax.annotate('{}'.format(np.around(best_sim, 2)),
+                 xy=(best_sim, best_eig_err),
+                 xytext=(best_sim - 0.1, 0.75 * np.max(eigs)),
                  arrowprops=dict(arrowstyle='->',
                             color='r'))
-    ax.set_title(i)
+    ax.set_title(eig_index)
     ax.set_xlim(0, 1)
-    ax.get_xaxis().set_ticks([])
-    fig.text(0, 0.5, r'$\lambda_i + \lambda_j - \lambda_k$',
-             va='center', rotation='vertical')
-    ax.scatter(corrs, eigs, s=3)
+    if index // cols == rows - 1:
+      ax.get_xaxis().set_ticks([0, 0.5, 1.0])
+    else:
+      ax.get_xaxis().set_ticks([])
+    if index % cols == 0:
+      ax.set_ylabel(r'$\lambda_i + \lambda_j - \lambda_k$')
+    ax.scatter(sims, eigs, s=3)
   plt.tight_layout(pad=0.5)
   if filename:
     plt.savefig(filename)
