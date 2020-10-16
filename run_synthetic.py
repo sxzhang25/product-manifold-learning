@@ -27,7 +27,7 @@ def do_generate_plots(image_dir, test_name, datatype, dimensions, phi, Sigma, da
                     title='Laplace Eigenvectors',
                     filename=eigenvectors_filename)
 
-  # plot manifolds
+  # plot manifold factor eigenvectors
   manifolds = info['manifolds']
   independent_vecs = []
   for manifold in manifolds:

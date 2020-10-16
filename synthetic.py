@@ -128,7 +128,7 @@ def calc_W(data, sigma):
   W = np.exp(-pairwise_sq_dists / sigma)
   return W
 
-def calc_vars(data, W, sigma, n_eigenvectors):
+def calc_vars(data, W, sigma, n_eigenvectors, uniform=True):
   '''
   calculates phi and Sigma
   data: the observed data stored as an n x D matrix, where n is the number of
@@ -136,18 +136,28 @@ def calc_vars(data, W, sigma, n_eigenvectors):
   W: the weight matrix of the data
   sigma: the kernel width
   n_eigenvectors: the number of eigenvectors to compute
+  uniform: set to False if the data was not sampled uniformly
   '''
-
   ones = np.ones(W.shape[0])
-  p = W @ ones
-  W1 = W / np.outer(p, p)
-  v = np.sqrt(W1 @ ones)
-  W2 = W1 / np.outer(v, v)
-  V, Sigma, VT = randomized_svd(W2,
-                                n_components=n_eigenvectors,
-                                n_iter=5,
-                                random_state=None)
-  phi = V / V[:,0][:,None]
+  if uniform:
+    v = np.sqrt(W @ ones)
+    S = W / np.outer(v, v)
+    V, Sigma, VT = randomized_svd(S,
+                                  n_components=n_eigenvectors,
+                                  n_iter=5,
+                                  random_state=None)
+    phi = V / V[:,0][:,None]
+    Sigma = -np.log(Sigma) / sigma
+  else:
+    p = W @ ones
+    W1 = W / np.outer(p, p)
+    v = np.sqrt(W1 @ ones)
+    W2 = W1 / np.outer(v, v)
+    V, Sigma, VT = randomized_svd(W2,
+                                  n_components=n_eigenvectors,
+                                  n_iter=5,
+                                  random_state=None)
+    phi = V / V[:,0][:,None]
   return phi, Sigma
 
 ###

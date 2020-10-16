@@ -29,7 +29,7 @@ def do_generate_plots(image_dir, test_name, image_data, raw_data, x, y, phi, Sig
                     title='Laplace Eigenvectors',
                     filename=eigenvectors_filename )
 
-  # plot manifolds
+  # plot manifold factor eigenvectors
   manifolds = info['manifolds']
   independent_vecs = []
   for manifold in manifolds:
@@ -143,7 +143,7 @@ def main():
   print("\nComputing eigenvectors...")
   t0 = time.perf_counter()
   W = syn.calc_W(image_data_, sigma)
-  phi, Sigma = syn.calc_vars(image_data_, W, sigma, n_eigenvectors=n_eigenvectors)
+  phi, Sigma = syn.calc_vars(image_data_, W, sigma, n_eigenvectors=n_eigenvectors, uniform=False)
   t1 = time.perf_counter()
   print("  Time: %2.2f seconds" % (t1-t0))
 
