@@ -27,7 +27,9 @@ python generate_data.py params/params_rectangle3d.json params/params_torus.json
 
 The datasets will be .pickle files located in the `data/` folder.
 
-Specifications for the datasets used in the paper can be changed by changing the keys in the params file:
+Specifications for the datasets used in the paper can be changed by changing the keys in the params file.
+
+The params files for geometric data are formatted as follows:
 
 * `name`: A user-defined name for the experiment, used for naming saved figures.
 * `dimensions`: The dimensions of the data manifold.
@@ -35,6 +37,16 @@ Specifications for the datasets used in the paper can be changed by changing the
 * `n_samples`: The number of samples in the dataset.
 * `seed`: A random seed.
 * `datatype`: The type of manifold. Refer to `generate_data.py` to see possible data types.
+
+The params files for cryo-EM data are formatted as follows:
+
+* `name`: A user-defined name for the experiment, used for naming saved figures.
+* `var`: The variance of Gaussian noise to add to the images.
+* `n_samples`: The number of samples in the dataset.
+* `seed`: A random seed.
+* `x_stretch`: The range [-x, x] which the stretching subunit can stretch in the x-direction.
+* `y_stretch`: The range [-y, y] which the stretching subunit can stretch in the y-direction.
+* `datatype`: The type of manifold, must be set to `"cryo-em"`.
 
 ## Running experiments
 
