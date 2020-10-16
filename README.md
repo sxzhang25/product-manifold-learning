@@ -18,7 +18,7 @@ To reproduce the datasets and experiments in the paper, run
 python run_experiments --generate_data
 ```
 
-Ommitting the `--generate_data` flag will run the experiments without pre-generating the data (e.g. if the data has already been generated once).
+Omitting the `--generate_data` flag will run the experiments without pre-generating the data (e.g. if the data has already been generated once).
 
 To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file.
 
