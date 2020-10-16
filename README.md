@@ -32,7 +32,7 @@ Specifications for the datasets used in the paper can be changed by changing the
 * `name`: A user-defined name for the experiment, used for naming saved figures.
 * `dimensions`: The dimensions of the data manifold.
 * `noise`: The amount of Gaussian noise to add, in the range [0, 1].
-* `n_samples`: The number of samples in the dataset. If `precomputed` is set to false, the generated dataset will contain this many samples.
+* `n_samples`: The number of samples in the dataset.
 * `seed`: A random seed.
 * `datatype`: The type of manifold. Refer to `generate_data.py` to see possible data types.
 
