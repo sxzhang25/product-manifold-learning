@@ -1,1 +1,0 @@
-{"test_name": "rectangle3d", "precomputed": true, "dimensions": [1, 1.5, 0.05], "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "rectangle3d", "sigma": 0.5, "n_comps": 2, "n_eigenvectors": 100, "lambda_thresh": 0.5, "corr_thresh": 0.85, "K": 0}
