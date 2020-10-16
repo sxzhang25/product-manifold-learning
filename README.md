@@ -12,18 +12,26 @@ Before running this project, make sure to `pip install` the following packages:
 This project was developed using Python 3.7.0.
 
 ## Running experiments
+To reproduce the datasets and experiments in the paper, run
+
+```
+python run_experiments --generate_data
+```
+
+Ommitting the `--generate_data` flag will run the experiments without pre-generating the data (e.g. if the data has already been generated once).
+
 To run the algorithm on a geometric dataset, use `run_synthetic.py` on the appropriate parameters `.json` file.
 
 For example, to run the algorithm on data sampled from a 2d rectangle with 3d noise, run
 
 ```
-python run_synthetic.py params_rectangle3d.json
+python run_synthetic.py params/params_rectangle3d.json
 ```
 
 To run the algorithm on synthetic cryo-EM data, use `run_cryo_em.py` on the appropriate parameters `.json` file.
 
 ```
-python run_cryo_em.py params_cryo_em.json
+python run_cryo_em.py params/params_cryo_em.json
 ```
 
 The plots will be produced if `generate_plots` is set to `True` in the files `run_*.py`.

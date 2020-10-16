@@ -6,6 +6,7 @@
 !/data/fakekv_data
 !/params/
 !fakekv.py
+!run_*
 
 drafts/
 images/
