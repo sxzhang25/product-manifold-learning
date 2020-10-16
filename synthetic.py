@@ -242,7 +242,7 @@ def find_combos(phi, Sigma, n_comps=2, lambda_thresh=10e-3, corr_thresh=0.5):
 # VOTING SCHEME
 ###
 
-def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K,
+def split_eigenvectors(best_matches, best_corrs, n_eigenvectors, K=0,
                        n_comps=2, verbose=False):
   '''
   clusters eigenvectors into two separate groups
