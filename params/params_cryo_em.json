@@ -1,1 +1,0 @@
-{"test_name": "cryo-em_x-theta_noisy", "var": 10000, "precomputed": true, "n_samples": 10000, "seed": 0, "x": 20, "y": 0, "sigma": 10, "n_comps": 2, "n_eigenvectors": 100, "lambda_thresh": 1, "corr_thresh": 0.8, "K": 0}

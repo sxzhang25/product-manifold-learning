@@ -1,1 +1,1 @@
-{"test_name": "rectangle3d", "precomputed": true, "dimensions": [1, 1.5, 0.05], "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "rectangle3d"}
+{"name": "rectangle3d", "dimensions": [1, 1.5, 0.05], "noise": 0, "n_samples": 10000, "seed": 0, "datatype": "rectangle3d"}
