@@ -108,7 +108,7 @@ def calculate_sim(v_i, v_j):
   sim = np.dot(v_i, v_j)
   return sim # score
 
-def find_combos(phi, Sigma, n_comps=2, eig_crit=10e-3, sim_crit=0.5):
+def find_combos(phi, Sigma, n_factors=2, eig_crit=10e-3, sim_crit=0.5):
   '''
   computes the triplets which have the highest similarity scores
   returns:
@@ -133,7 +133,7 @@ def find_combos(phi, Sigma, n_comps=2, eig_crit=10e-3, sim_crit=0.5):
     best_match = []
 
     # iterate over all possible number of factors in the eigenvector factorization
-    for m in range(2, n_comps + 1):
+    for m in range(2, n_factors + 1):
       # iterate over all possible factorizations
       for combo in list(combinations(np.arange(1, k), m)):
         combo = list(combo)
@@ -170,7 +170,7 @@ def find_combos(phi, Sigma, n_comps=2, eig_crit=10e-3, sim_crit=0.5):
 ###
 
 def split_eigenvectors(best_matches, best_sims, n_eigenvectors, K=0,
-                       n_comps=2, verbose=False):
+                       n_factors=2, verbose=False):
   '''
   clusters eigenvectors into two separate groups
   returns:
@@ -211,7 +211,7 @@ def split_eigenvectors(best_matches, best_sims, n_eigenvectors, K=0,
     print("\nSeparability matrix:\n", np.around(C_, 3))
 
   np.random.seed(1)
-  if n_comps == 2:
+  if n_factors == 2:
     Y = cp.Variable((n, n), PSD=True)
     constraints = [cp.diag(Y) == 1]
     obj = 0.5 * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
@@ -230,7 +230,7 @@ def split_eigenvectors(best_matches, best_sims, n_eigenvectors, K=0,
     for i in range(n):
       labels[1][i] = 1 if projections[i] >= 0 else 0
 
-  elif n_comps > 2:
+  elif n_factors > 2:
     # follow max k-cut heuristic according to:
     # https://drops.dagstuhl.de/opus/volltexte/2018/8309/pdf/OASIcs-SOSA-2018-13.pdf
 
@@ -239,9 +239,9 @@ def split_eigenvectors(best_matches, best_sims, n_eigenvectors, K=0,
     for i in range(n):
       for j in range(n):
         if j is not i:
-          constraints += [Y[i,j] >= -1 / (n_comps - 1)]
+          constraints += [Y[i,j] >= -1 / (n_factors - 1)]
 
-    obj = (1 - 1 / n_comps) * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
+    obj = (1 - 1 / n_factors) * cp.sum(cp.multiply(C_, np.ones((n, n)) - Y))
     prob = cp.Problem(cp.Maximize(obj), constraints)
     prob.solve()
 
@@ -261,9 +261,7 @@ def split_eigenvectors(best_matches, best_sims, n_eigenvectors, K=0,
     labels = np.zeros((2, n), dtype='int')
     labels[0,:] = factors
     for i in range(n):
-      labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_comps))
-
-    # plot_k_cut(labels, n_comps, theta, z)
+      labels[1][i] = int(((theta[i] - z) % (2 * np.pi)) / (2 * np.pi / n_factors))
 
   return labels, C
 

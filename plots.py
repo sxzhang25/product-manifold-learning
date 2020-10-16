@@ -247,7 +247,7 @@ def plot_eigenmap(data_gt, phi, dims, filename=None):
     plt.savefig(filename)
   plt.show()
 
-def plot_product_sims(mixtures, phi, Sigma, steps, n_comps=2, filename=None):
+def plot_product_sims(mixtures, phi, Sigma, steps, n_factors=2, filename=None):
   start, end, skip = steps
   num_plots = (end - start) // skip
   rows, cols = [2, int(np.ceil(num_plots / 2))]
@@ -259,7 +259,7 @@ def plot_product_sims(mixtures, phi, Sigma, steps, n_comps=2, filename=None):
     eigs = []
     v = phi[:,eig_index]
     lambda_v = Sigma[eig_index]
-    for m in range(2, n_comps + 1):
+    for m in range(2, n_factors + 1):
       for combo in list(combinations(np.arange(1, eig_index), m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
@@ -321,13 +321,13 @@ def plot_C_matrix(manifolds, C, filename=None):
     plt.savefig(filename)
   plt.show()
 
-def plot_k_cut(labels,n_comps, theta, z):
+def plot_k_cut(labels,n_factors, theta, z):
   plt.figure()
   for i in range(len(theta)):
     plt.plot([0, np.cos(theta[i])], [0, np.sin(theta[i])], c='red')
     plt.annotate(labels[0][i], xy=(np.cos(theta[i]), np.sin(theta[i])))
-  for j in range(n_comps):
-    z_angle = (z + j * 2 * np.pi / n_comps) % (2 * np.pi)
+  for j in range(n_factors):
+    z_angle = (z + j * 2 * np.pi / n_factors) % (2 * np.pi)
     plt.plot([0, np.cos(z_angle)], [0, np.sin(z_angle)], c='black')
   plt.xlim((-1.1, 1.1))
   plt.ylim((-1.1, 1.1))

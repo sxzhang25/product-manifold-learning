@@ -10,15 +10,9 @@ from sklearn.preprocessing import StandardScaler
 from plots import *
 from utils import *
 
-n_comps = 2
 n_eigenvectors = 100
-n_samples = 10_000
-
 rect3d_dimensions = [1 + np.sqrt(np.pi), 1.5, 0.05]
-torus_dimensions = [1 + np.sqrt(np.pi), 2]
 cryo_em_x = 20
-cryo_em_y = 0
-cryo_em_var = 10000
 
 def main():
   data_dir = './data/'

@@ -56,7 +56,7 @@ def run_algorithm(info, sigma, n_eigenvectors, n_factors, eig_crit, sim_crit,
     print("\nSplitting eigenvectors...")
   t0 = time.perf_counter()
   labels, C = split_eigenvectors(best_matches, best_sims, n_eigenvectors, K,
-                                 n_comps=n_factors, verbose=verbose)
+                                 n_factors=n_factors, verbose=verbose)
   t1 = time.perf_counter()
   info['C_matrix'] = C
   if verbose:
