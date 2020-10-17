@@ -25,7 +25,7 @@ Note that multiple datasets can be generated at once by passing a list of .json 
 python generate_data.py params/params_rectangle3d.json params/params_torus.json
 ```
 
-The datasets will be .pickle files located in the `data/` folder.
+will generate two separate datasets. The datasets will be .pickle files located in the `data/` folder.
 
 Specifications for the datasets used in the paper can be changed by changing the keys in the params file.
 
