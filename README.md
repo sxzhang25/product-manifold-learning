@@ -62,7 +62,8 @@ For example,
 python run_experiments.py data/rectangle3d_info.pickle configs/configs_rectangle3d.json --generate_plots
 ```
 
-will run the algorithm on the dataset specified in `data/rectangle3d_info.json` and generate figures for the different experiments. The `--generate_plots` flag is optional and will produce and save figures for various experiments.
+will run the algorithm on the dataset specified in `data/rectangle3d_info.json` and generate figures for the different experiments. 
+If the `--generate_plots` flag is omitted, the experiments will be run without producing figures.
 
 ## Customizing algorithm parameters
 
