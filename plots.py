@@ -18,9 +18,8 @@ from utils import *
 def plot_synthetic_data(data, dimensions, title=None, filename=None,
                         azim=60, elev=30, proj_type='persp'):
   '''
-  plot the original data
+  displays the observed data
   '''
-
   fig = plt.figure(figsize=(5,5))
   if data.shape[1] <= 2:
     ax = fig.add_subplot(111)
@@ -52,7 +51,8 @@ def plot_synthetic_data(data, dimensions, title=None, filename=None,
 
 def plot_cryo_em_data(data, title=None, filename=None):
   '''
-  plots the images of the synthetic data
+  displays the cryo-EM images 
+  (be careful to only select a few to show)
   '''
   n_samples = data.shape[0]
   rows = int(np.ceil(n_samples**0.5))
@@ -82,7 +82,7 @@ def plot_cryo_em_data(data, title=None, filename=None):
 def plot_eigenvector(data, v, scaled=False, title=None, filename=None):
   '''
   plots the eigenvector v
-  if scale=True, then scale v to [0,1]
+  if scaled=True, then scale v to [0,1]
   if index is specified, label the graph
   '''
 
@@ -102,7 +102,14 @@ def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, ti
                       filename=None, offset_scale=0.1, azim=60, elev=30, proj_type='persp'):
   '''
   plots the array eigenvectors
+  
+  data: the data corresponding to the components of the eigenvector
+  dimensions: the dimensions of the data (for configuring axes)
   eigenvectors: a list of eigenvectors
+  full: if set to True, each eigenvector will be displayed separately. Otherwise,
+  they will be stacked.
+  offset_scale: if full=True, then this determines the vertical spacing between 
+  stacked eigenvectors.
   '''
   rows = int(np.ceil(len(eigenvectors)**0.5))
   cols = rows
@@ -214,6 +221,9 @@ def plot_independent_eigenvectors(manifold1, manifold2,
   plt.show()
 
 def plot_triplet_sims(sims, thresh=None, filename=None):
+  '''
+  plot the similarity scores of all triplets found
+  '''
   counts, bins, patches = plt.hist(sims.values(), 50, density=True)
   if thresh:
     plt.plot([thresh, thresh], [0, np.max(counts)], "k--", linewidth=1)
@@ -225,6 +235,13 @@ def plot_triplet_sims(sims, thresh=None, filename=None):
   plt.show()
 
 def plot_eigenmap(data_gt, phi, dims, filename=None):
+  '''
+  shows the laplace eigenmap of the data
+  
+  data_gt: the ground truth observations from the parameter space
+  phi: the eigenvectors
+  dims: the number of dimensions for the eigenmap
+  '''
   if len(dims) < 2:
     print("Unable to create eigenmap: not enough eigenvectors")
     return
@@ -248,6 +265,14 @@ def plot_eigenmap(data_gt, phi, dims, filename=None):
   plt.show()
 
 def plot_product_sims(mixtures, phi, Sigma, steps, n_factors=2, filename=None):
+  '''
+  plots the similarity scores of all triplets for each product eigenvector
+  
+  mixtures: the complete list of product eigenvectors.
+  phi: the complete matrix of eigenvectors.
+  Sigma: the array of eigenvalues.
+  steps: indexing to determine which product eigenvectors to plot.
+  '''
   start, end, skip = steps
   num_plots = (end - start) // skip
   rows, cols = [2, int(np.ceil(num_plots / 2))]
@@ -301,6 +326,9 @@ def plot_product_sims(mixtures, phi, Sigma, steps, n_factors=2, filename=None):
   plt.show()
 
 def plot_C_matrix(manifolds, C, filename=None):
+  '''
+  plots a heat map of the separability matrix C.
+  '''
   C1 = np.empty((C.shape[0], 0))
   idxs = []
   for m in manifolds:
@@ -322,6 +350,9 @@ def plot_C_matrix(manifolds, C, filename=None):
   plt.show()
 
 def plot_k_cut(labels,n_factors, theta, z):
+  '''
+  displays the max k-cut.
+  '''
   plt.figure()
   for i in range(len(theta)):
     plt.plot([0, np.cos(theta[i])], [0, np.sin(theta[i])], c='red')
