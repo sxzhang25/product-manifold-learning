@@ -22,7 +22,7 @@ def generate_synthetic_data(dimensions, n_samples, datatype='rectangle',
 
   np.random.seed(seed)
 
-  if datatype=='rectangle':
+  if datatype=='rectangle2d':
     # rectangle
     l1, l2 = dimensions
     line1_data = l1 * (np.random.rand(n_samples) +  \
@@ -127,14 +127,14 @@ def main():
   parser = argparse.ArgumentParser(description='Generate data.')
   parser.add_argument("params_files", nargs='+')
   params_files = parser.parse_args().params_files
-  
+
   data_dir = './data/'
   if not os.path.exists(data_dir):
     os.makedirs(data_dir)
-  
+
   for params_file in params_files:
     print("\nGenerating file:", params_file)
-    
+
     info = {}
     with open(params_file) as f:
       params = json.load(f)
@@ -143,6 +143,7 @@ def main():
       print("{:15}:  {}".format(item, value))
 
     datatype = params['datatype']
+    info['datatype'] = datatype
     if datatype == "cryo-em":
       name = params['name']
       var = params['var']
@@ -150,24 +151,24 @@ def main():
       seed = params['seed']
       x_stretch = params['x_stretch']
       y_stretch = params['y_stretch']
-    
+
       # generate random data
       print("\nGenerating random cryo-EM data...")
-      
-      image_data, raw_data = generate_cryo_em_data(n_samples, 
-                                                   x_stretch=x_stretch, 
-                                                   y_stretch=y_stretch, 
+
+      image_data, raw_data = generate_cryo_em_data(n_samples,
+                                                   x_stretch=x_stretch,
+                                                   y_stretch=y_stretch,
                                                    var=var)
       info['image_data'] = image_data
       info['raw_data'] = raw_data
-      
+
       # save info dictionary using pickle
       print("\nSaving data...")
       data_filename = data_dir + '{}_info.pickle'.format(name)
       with open(data_filename, 'wb') as handle:
         pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
       print("Done")
-      
+
     else:
       name = params['name']
       dimensions = params['dimensions']
@@ -175,7 +176,7 @@ def main():
       noise = params['noise']
       n_samples = params['n_samples']
       seed = params['seed']
-      
+
       # generate random data
       print("\nGenerating random data...")
       data = generate_synthetic_data(dimensions,
@@ -184,7 +185,7 @@ def main():
                                      datatype=datatype,
                                      seed=seed)
       info['data'] = data
-      
+
       # save info dictionary using pickle
       print("\nSaving data...")
       data_filename = data_dir + '{}_info.pickle'.format(name)
@@ -193,5 +194,4 @@ def main():
       print("Done")
 
 if __name__ == "__main__":
-  main()      
-  
+  main()
