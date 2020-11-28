@@ -9,7 +9,7 @@ import scipy.ndimage as ndimage
 from utils import *
 
 def run_algorithm(info, sigma, n_eigenvectors, n_factors, eig_crit, sim_crit,
-                  uniform=True, K=0, seed=255, verbose=False):
+                  uniform=True, K=0, seed=255, exclude_eigs=None, verbose=False):
   '''
   an algorithm to factorize a product manifold
 
@@ -43,7 +43,7 @@ def run_algorithm(info, sigma, n_eigenvectors, n_factors, eig_crit, sim_crit,
   if verbose:
     print("\nComputing combos...")
   t0 = time.perf_counter()
-  best_matches, best_sims, all_sims = find_combos(phi, Sigma, n_factors, eig_crit, sim_crit)
+  best_matches, best_sims, all_sims = find_combos(phi, Sigma, n_factors, eig_crit, sim_crit, exclude_eigs=exclude_eigs)
   t1 = time.perf_counter()
   if verbose:
     print("  Time: %2.2f seconds" % (t1-t0))
