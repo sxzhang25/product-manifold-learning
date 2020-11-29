@@ -108,7 +108,7 @@ def calculate_sim(v_i, v_j):
   sim = np.dot(v_i, v_j)
   return sim # score
 
-def find_combos(phi, Sigma, n_factors=2, eig_crit=10e-3, sim_crit=0.5):
+def find_combos(phi, Sigma, n_factors=2, eig_crit=10e-3, sim_crit=0.5, exclude_eigs=None):
   '''
   computes the triplets which have the highest similarity scores
   returns:
@@ -135,7 +135,11 @@ def find_combos(phi, Sigma, n_factors=2, eig_crit=10e-3, sim_crit=0.5):
     # iterate over all possible number of factors in the eigenvector factorization
     for m in range(2, n_factors + 1):
       # iterate over all possible factorizations
-      for combo in list(combinations(np.arange(1, k), m)):
+      if exclude_eigs:
+        valid_eigs = [v for v in np.arange(1, k) if v not in exclude_eigs]
+      else:
+        valid_eigs = np.arange(1, k)
+      for combo in list(combinations(valid_eigs, m)):
         combo = list(combo)
         lambda_sum = np.sum(Sigma[combo])
         lambda_diff = abs(lambda_k - lambda_sum)
