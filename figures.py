@@ -35,7 +35,7 @@ def main():
 
   # figure 1
   plot_synthetic_data(rect3d_data, rect3d_dimensions, azim=-30, elev=30,
-                      filename=image_dir + 'rectangle3d_original_data.pdf')
+                      filename=image_dir + 'rectangle3d_original_data.png')
 
   rect3d_manifolds = rect3d_info['manifolds']
   rect3d_independent_vecs = []
@@ -49,7 +49,7 @@ def main():
     plot_eigenvectors(rect3d_data_gt, rect3d_dimensions, vecs[:5],
                       full=False,
                       labels=[int(j) for j in rect3d_manifolds[m]],
-                      filename=image_dir + 'manifold{}_rectangle3d.pdf'.format(m),
+                      filename=image_dir + 'manifold{}_rectangle3d.png'.format(m),
                       offset_scale=0,
                       elev=30,
                       azim=-30)
@@ -57,7 +57,7 @@ def main():
   # figure 2
   image_data = cryo_em_info['image_data']
   plot_cryo_em_data(image_data[:4],
-                    filename=image_dir + 'cryo-em_x-theta_noisy_original_data.pdf')
+                    filename=image_dir + 'cryo-em_x-theta_noisy_original_data.png')
 
   cryo_em_manifolds = cryo_em_info['manifolds']
   cryo_em_independent_vecs = []
@@ -72,13 +72,13 @@ def main():
                       vecs[:5],
                       full=False,
                       labels=[int(j) for j in cryo_em_manifolds[m]],
-                      filename=image_dir + 'manifold{}_cryo-em_x-theta_noisy.pdf'.format(m))
+                      filename=image_dir + 'manifold{}_cryo-em_x-theta_noisy.png'.format(m))
 
   # figure 3
   rect3d_mixtures = get_product_eigs(rect3d_info['manifolds'], n_eigenvectors)
   steps = [5, 95, 15]
   plot_product_sims(rect3d_mixtures, rect3d_info['phi'], rect3d_info['Sigma'], steps,
-                    filename=image_dir + 'product-eig_sim-scores_rectangle3d.pdf')
+                    filename=image_dir + 'product-eig_sim-scores_rectangle3d.png')
 
   # figure 4
   torus_manifolds = torus_info['manifolds']
@@ -90,13 +90,13 @@ def main():
 
   for m in range(len(rect3d_manifolds)):
     plot_eigenmap(rect3d_data_gt[:,m], rect3d_phi, rect3d_manifolds[m][:2],
-                   filename=image_dir + 'eigenmap{}_rectangle3d_2d.pdf'.format(m))
+                   filename=image_dir + 'eigenmap{}_rectangle3d_2d.png'.format(m))
   for m in range(len(torus_manifolds)):
     plot_eigenmap(torus_data_gt[:,m], torus_phi, torus_manifolds[m][:2],
-                   filename=image_dir + 'eigenmap{}_torus_2d.pdf'.format(m))
+                   filename=image_dir + 'eigenmap{}_torus_2d.png'.format(m))
   for m in range(len(cryo_em_manifolds)):
     plot_eigenmap(cryo_em_raw_data[:,m], cryo_em_phi, cryo_em_manifolds[m][:2],
-                   filename=image_dir + 'eigenmap{}_cryo-em_x-theta_noisy_2d.pdf'.format(m))
+                   filename=image_dir + 'eigenmap{}_cryo-em_x-theta_noisy_2d.png'.format(m))
 
 if __name__ == "__main__":
   main()
