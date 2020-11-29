@@ -51,7 +51,7 @@ def plot_synthetic_data(data, dimensions, title=None, filename=None,
 
 def plot_cryo_em_data(data, title=None, filename=None):
   '''
-  displays the cryo-EM images 
+  displays the cryo-EM images
   (be careful to only select a few to show)
   '''
   n_samples = data.shape[0]
@@ -102,13 +102,13 @@ def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, ti
                       filename=None, offset_scale=0.1, azim=60, elev=30, proj_type='persp'):
   '''
   plots the array eigenvectors
-  
+
   data: the data corresponding to the components of the eigenvector
   dimensions: the dimensions of the data (for configuring axes)
   eigenvectors: a list of eigenvectors
   full: if set to True, each eigenvector will be displayed separately. Otherwise,
   they will be stacked.
-  offset_scale: if full=True, then this determines the vertical spacing between 
+  offset_scale: if full=True, then this determines the vertical spacing between
   stacked eigenvectors.
   '''
   rows = int(np.ceil(len(eigenvectors)**0.5))
@@ -157,20 +157,58 @@ def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, ti
                        marker="s",
                        c=v)
   else:
-    fig = plt.figure(figsize=(5 * cols, 5 * rows))
-    for r in range(rows):
-      for c in range(cols):
-        index = r * cols + c
-        ax = fig.add_subplot(rows, cols, index+1, projection='3d')
-        if index >= len(eigenvectors):
-          ax.set_visible(False)
-        else:
-          v = eigenvectors[r * cols + c]
-          v /= np.linalg.norm(v)
-          g = ax.scatter(data[:,0], data[:,1], data[:,2], marker="s", c=v)
-          fig.colorbar(g, ax=ax)
-          if labels is not None:
-            ax.set_title(labels[index])
+    if full:
+      fig = plt.figure(figsize=(5 * cols, 5 * rows))
+      x, y, z = dimensions
+      axis_max = np.max(dimensions)
+      offset = offset_scale * len(eigenvectors)
+      plt.axis('off')
+      plt.grid(b=None)
+      plt.tight_layout()
+      for r in range(rows):
+        for c in range(cols):
+          index = r * cols + c
+          ax = fig.add_subplot(rows, cols, index+1, projection='3d')
+          ax.set_xlim3d((x - axis_max) / 2, (x + axis_max) / 2)
+          ax.set_ylim3d((y - axis_max) / 2, (y + axis_max) / 2)
+          ax.set_zlim3d((z - axis_max) / 2, (z + axis_max) / 2)
+          ax.set_xticks([])
+          ax.set_yticks([])
+          ax.set_zticks([])
+          if index >= len(eigenvectors):
+            ax.set_visible(False)
+          else:
+            v = eigenvectors[r * cols + c]
+            v /= np.linalg.norm(v)
+            g = ax.scatter(data[:,0], data[:,1], data[:,2], marker="s", c=v)
+            if labels is not None:
+              ax.set_title(labels[index])
+    else:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d', azim=azim, elev=elev,
+                           proj_type=proj_type)
+      x, y, z = dimensions
+      axis_max = np.max(dimensions)
+      offset = offset_scale * len(eigenvectors) + x
+      ax.set_xlim3d(0, x * (len(eigenvectors) + offset))
+      ax.set_ylim3d((y - axis_max) / 2, (y + axis_max) / 2 + offset)
+      ax.set_zlim3d((z - axis_max) / 2, (z + axis_max) / 2 + offset)
+      ax.set_xticks([])
+      ax.set_yticks([])
+      ax.set_zticks([])
+      plt.axis('off')
+      plt.grid(b=None)
+      plt.tight_layout()
+      plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+
+      for i in range(len(eigenvectors)):
+        v = eigenvectors[i]
+        v /= np.linalg.norm(v)
+        g = ax.scatter(data[:,0] + offset_scale * np.ones(data.shape[0]) * (len(eigenvectors) - i)  + (np.ones(data.shape[0]) + x) * (len(eigenvectors) - i),
+                       data[:,1] + offset_scale * np.ones(data.shape[0]) * (len(eigenvectors) - i),
+                       data[:,2] + offset_scale * np.ones(data.shape[0]) * (len(eigenvectors) - i),
+                       marker="s",
+                       c=v)
   if title:
     plt.title(title)
   if filename:
@@ -237,7 +275,7 @@ def plot_triplet_sims(sims, thresh=None, filename=None):
 def plot_eigenmap(data_gt, phi, dims, filename=None):
   '''
   shows the laplace eigenmap of the data
-  
+
   data_gt: the ground truth observations from the parameter space
   phi: the eigenvectors
   dims: the number of dimensions for the eigenmap
@@ -267,7 +305,7 @@ def plot_eigenmap(data_gt, phi, dims, filename=None):
 def plot_product_sims(mixtures, phi, Sigma, steps, n_factors=2, filename=None):
   '''
   plots the similarity scores of all triplets for each product eigenvector
-  
+
   mixtures: the complete list of product eigenvectors.
   phi: the complete matrix of eigenvectors.
   Sigma: the array of eigenvalues.
@@ -345,6 +383,24 @@ def plot_C_matrix(manifolds, C, filename=None):
   ax.set_yticklabels(['']) # + idxs)
   matrix = ax.matshow(C2, cmap=plt.cm.Reds)
   fig.colorbar(matrix)
+  if filename:
+    plt.savefig(filename)
+  plt.show()
+
+def plot_fast_ica(data_transformed, data_gt, filename=None):
+  '''
+  plots the FastICA decomposition with color labels for the ground truth data
+  note: currently only supports two factor decompositions
+  '''
+  fig = plt.figure()
+  if data_transformed.shape[1] <= 2:
+    plt.scatter(data_transformed[:,0], data_transformed[:,1], c=data_gt, cmap='hsv')
+    plt.axis('off')
+  else:
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(data_transformed[:,0], data_transformed[:,1], data_transformed[:,2],
+                c=data_gt, cmap='hsv')
+    ax.axis('off')
   if filename:
     plt.savefig(filename)
   plt.show()
