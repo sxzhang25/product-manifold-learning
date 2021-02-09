@@ -85,7 +85,7 @@ The format of parameters is:
 To reproduce the figures in the paper, first make sure that the datasets are generated:
 
 ```
-python generate_data.py params/params_rectangle3d.json params/params_torus.json params/params_cryo_em.json
+python generate_data.py params/params_rectangle3d.json params/params_torus.json params/params_cryo-em_x-theta_noisy.json
 ```
 
 Then run the experiments:
