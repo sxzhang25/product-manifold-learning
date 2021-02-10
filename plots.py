@@ -1,6 +1,8 @@
 # helper methods for creating figures
 
 import numpy as np
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -47,7 +49,7 @@ def plot_synthetic_data(data, dimensions, title=None, filename=None,
     plt.title(title, pad=10)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_cryo_em_data(data, title=None, filename=None):
   '''
@@ -73,7 +75,7 @@ def plot_cryo_em_data(data, title=None, filename=None):
     plt.title(title, pad=10)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 ###
 # PLOT EIGENVECTORS
@@ -86,17 +88,16 @@ def plot_eigenvector(data, v, scaled=False, title=None, filename=None):
   if index is specified, label the graph
   '''
 
-  vs = scale(v, [0,1]) if scaled else v
   fig = plt.figure()
   ax = fig.add_subplot(111)
-  g = ax.scatter(data[:,0], data[:,1], marker="s", c=vs)
+  g = ax.scatter(data[:,0], data[:,1], marker="s", c=v)
   ax.set_aspect('equal', 'datalim')
   cb = plt.colorbar(g)
   if title:
     plt.title(title)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, title=None,
                       filename=None, offset_scale=0.1, azim=60, elev=30, proj_type='persp'):
@@ -213,7 +214,7 @@ def plot_eigenvectors(data, dimensions, eigenvectors, full=True, labels=None, ti
     plt.title(title)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_eigenvectors_combo(data, v1, v2, title=None, filename=None):
   '''
@@ -256,7 +257,7 @@ def plot_independent_eigenvectors(manifold1, manifold2,
     plt.title(title, fontsize=20)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_triplet_sims(sims, thresh=None, filename=None):
   '''
@@ -270,7 +271,7 @@ def plot_triplet_sims(sims, thresh=None, filename=None):
   plt.title('Similarity score density')
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_eigenmap(data_gt, phi, dims, filename=None):
   '''
@@ -300,7 +301,7 @@ def plot_eigenmap(data_gt, phi, dims, filename=None):
                s=5, c=data_gt, cmap='hsv')
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_product_sims(mixtures, phi, Sigma, steps, n_factors=2, filename=None):
   '''
@@ -361,7 +362,7 @@ def plot_product_sims(mixtures, phi, Sigma, steps, n_factors=2, filename=None):
   plt.tight_layout(pad=0.5)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_C_matrix(manifolds, C, filename=None):
   '''
@@ -385,7 +386,7 @@ def plot_C_matrix(manifolds, C, filename=None):
   fig.colorbar(matrix)
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_fast_ica(data_transformed, data_gt, filename=None):
   '''
@@ -403,7 +404,7 @@ def plot_fast_ica(data_transformed, data_gt, filename=None):
     ax.axis('off')
   if filename:
     plt.savefig(filename)
-  plt.show()
+  plt.close()
 
 def plot_k_cut(labels,n_factors, theta, z):
   '''
@@ -419,4 +420,4 @@ def plot_k_cut(labels,n_factors, theta, z):
   plt.xlim((-1.1, 1.1))
   plt.ylim((-1.1, 1.1))
   plt.axis('equal')
-  plt.show()
+  plt.close()

@@ -164,7 +164,7 @@ def main():
 
       # save info dictionary using pickle
       print("\nSaving data...")
-      data_filename = data_dir + '{}_info.pickle'.format(name)
+      data_filename = data_dir + '{}_info.pkl'.format(name)
       with open(data_filename, 'wb') as handle:
         pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
       print("Done")
@@ -188,7 +188,7 @@ def main():
 
       # save info dictionary using pickle
       print("\nSaving data...")
-      data_filename = data_dir + '{}_info.pickle'.format(name)
+      data_filename = data_dir + '{}_info.pkl'.format(name)
       with open(data_filename, 'wb') as handle:
         pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
       print("Done")
