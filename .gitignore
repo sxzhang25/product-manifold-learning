@@ -1,6 +1,7 @@
 /*
 !.gitignore
 !README.md
+!reproduce_results.sh
 
 !/data/
 /data/*
