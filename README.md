@@ -25,7 +25,7 @@ Note that multiple datasets can be generated at once by passing a list of .json 
 python generate_data.py params/params_rectangle3d.json params/params_torus.json
 ```
 
-will generate two separate datasets. The datasets will be .pickle files located in the `data/` folder.
+will generate two separate datasets. The datasets will be pickle files located in the `data/` folder.
 
 Specifications for the datasets used in the paper can be changed by changing the keys in the params file.
 
@@ -53,13 +53,13 @@ The params files for cryo-EM data are formatted as follows:
 To run the algorithm on a particular dataset, use
 
 ```
-python run_experiments.py <path/to/data.pickle> <path/to/configs.json> --generate_plots
+python run_experiments.py <path/to/data.pkl> <path/to/configs.json> --generate_plots
 ```
 
 For example,
 
 ```
-python run_experiments.py data/rectangle3d_info.pickle configs/configs_rectangle3d.json --generate_plots
+python run_experiments.py data/rectangle3d_info.pkl configs/configs_rectangle3d.json --generate_plots
 ```
 
 will run the algorithm on the dataset specified in `data/rectangle3d_info.json` and generate figures for the different experiments. 
