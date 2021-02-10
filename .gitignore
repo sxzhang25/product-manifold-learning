@@ -12,7 +12,7 @@
 !/fakekv.py
 !/utils.py
 !/plots.py
-!/run_experiments.py
+!/reproduce_figures.py
 !/generate_data.py
 !/algorithm.py
 !/figures.py
