@@ -16,11 +16,3 @@
 !/generate_data.py
 !/algorithm.py
 !/figures.py
-
-drafts/
-images/
-papers/
-updates/
-__pycache__
-
-*.ipynb
