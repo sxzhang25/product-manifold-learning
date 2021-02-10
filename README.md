@@ -88,20 +88,23 @@ To reproduce the figures in the paper, first make sure that the datasets are gen
 python generate_data.py params/params_rectangle3d.json params/params_torus.json params/params_cryo-em_x-theta_noisy.json
 ```
 
-Then run the experiments:
+Then run the script `./reproduce_results.sh`. 
+
+
+Alternatively, you can run the experiments:
 
 ```
-python run_experiments.py data/rectangle3d_info.pickle configs/configs_rectangle3d.json
+python factorize.py --data data/rectangle3d_info.pkl --configs configs/configs_rectangle3d.json --outdir results/rectangle3d
 
-python run_experiments.py data/torus_info.pickle configs/configs_torus.json
+python factorize.py --data data/torus_info.pkl --configs configs/configs_torus.json --outdir results/torus
 
-python run_experiments.py data/cryo-em_x-theta_noisy_info.pickle configs/configs_cryo-em_x-theta_noisy.json
+python factorize.py --data data/cryo-em_x-theta_noisy_info.pkl --configs configs/configs_cryo-em_x-theta_noisy.json --outdir results/cryo-em_x-theta_noisy
 ```
 
-Finally, run the following:
+And then run the following:
 
 ```
-python figures.py
+python reproduce_figures.py
 ```
 
-The figures will be located in the `images/` folder.
+The figures will be located in the `figures/` folder.
