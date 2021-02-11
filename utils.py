@@ -135,7 +135,7 @@ def find_combos(phi, Sigma, n_factors=2, eig_crit=10e-3, sim_crit=0.5, exclude_e
     # iterate over all possible number of factors in the eigenvector factorization
     for m in range(2, n_factors + 1):
       # iterate over all possible factorizations
-      if exclude_eigs:
+      if exclude_eigs is not None:
         valid_eigs = [v for v in np.arange(1, k) if v not in exclude_eigs]
       else:
         valid_eigs = np.arange(1, k)
