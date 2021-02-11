@@ -172,7 +172,7 @@ def main():
     else:
       name = params['name']
       dimensions = params['dimensions']
-      dimensions[0] = np.sqrt(np.pi) + dimensions[0] # optional
+      dimensions[0] = np.sqrt(np.pi) + dimensions[0] # optional to add sqrt(pi)
       noise = params['noise']
       n_samples = params['n_samples']
       seed = params['seed']
