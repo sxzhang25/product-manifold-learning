@@ -18,7 +18,7 @@ from factorize import *
 n_eigenvectors = 100
 rect3d_dimensions = [1 + np.sqrt(np.pi), 1.5, 0.05]
 cryo_em_x = 20
-cube_dimensions = [1.0, 1.5 + np.sqrt(np.pi), 7.0]
+cube_dimensions = [1.0 + np.sqrt(np.pi), 1.5, 7.0]
 
 def main():
   data_dir = './data'
@@ -116,50 +116,50 @@ def main():
                       labels=[int(j) for j in cryo_em_manifolds[m]],
                       filename='{}/cryo-em_x-theta_noisy.png'.format(image_dir))
 
-  # # figure 4
-  # print('Generating Figure 4...', flush=True)
-  # rect3d_mixtures = get_product_eigs(rect3d_results['manifolds'], n_eigenvectors)
-  # steps = [5, 95, 15]
-  # plot_product_sims(rect3d_mixtures, rect3d_results['phi'], rect3d_results['Sigma'], steps,
-  #                   filename='{}/product-eig_sim-scores_rectangle3d.png'.format(image_dir))
+  # figure 4
+  print('Generating Figure 4...', flush=True)
+  rect3d_mixtures = get_product_eigs(rect3d_results['manifolds'], n_eigenvectors)
+  steps = [5, 95, 15]
+  plot_product_sims(rect3d_mixtures, rect3d_results['phi'], rect3d_results['Sigma'], steps,
+                    filename='{}/product-eig_sim-scores_rectangle3d.png'.format(image_dir))
 
-  # # figure 6
-  # print('Generating Figure 6...', flush=True)
-  # torus_manifolds = torus_results['manifolds']
-  # torus_independent_vecs = []
-  # torus_phi = torus_results['phi']
+  # figure 6
+  print('Generating Figure 6...', flush=True)
+  torus_manifolds = torus_results['manifolds']
+  torus_independent_vecs = []
+  torus_phi = torus_results['phi']
 
-  # # manifold factorization (ours)
-  # for manifold in torus_manifolds:
-  #   vecs = [torus_phi[:,int(i)] for i in manifold]
-  #   torus_independent_vecs.append(vecs)
+  # manifold factorization (ours)
+  for manifold in torus_manifolds:
+    vecs = [torus_phi[:,int(i)] for i in manifold]
+    torus_independent_vecs.append(vecs)
 
-  # for m in range(len(rect3d_manifolds)):
-  #   plot_eigenmap(rect3d_data_gt[:,m], rect3d_phi, rect3d_manifolds[m][:2],
-  #                  filename='{}/eigenmap{}_rectangle3d_2d.png'.format(image_dir, m))
-  # for m in range(len(torus_manifolds)):
-  #   plot_eigenmap(torus_data_gt[:,m], torus_phi, torus_manifolds[m][:2],
-  #                  filename='{}/eigenmap{}_torus_2d.png'.format(image_dir, m))
-  # for m in range(len(cryo_em_manifolds)):
-  #   plot_eigenmap(cryo_em_raw_data[:,m], cryo_em_phi, cryo_em_manifolds[m][:2],
-  #                  filename='{}/eigenmap{}_cryo-em_x-theta_noisy_2d.png'.format(image_dir, m))
+  for m in range(len(rect3d_manifolds)):
+    plot_eigenmap(rect3d_data_gt[:,m], rect3d_phi, rect3d_manifolds[m][:2],
+                   filename='{}/eigenmap{}_rectangle3d_2d.png'.format(image_dir, m))
+  for m in range(len(torus_manifolds)):
+    plot_eigenmap(torus_data_gt[:,m], torus_phi, torus_manifolds[m][:2],
+                   filename='{}/eigenmap{}_torus_2d.png'.format(image_dir, m))
+  for m in range(len(cryo_em_manifolds)):
+    plot_eigenmap(cryo_em_raw_data[:,m], cryo_em_phi, cryo_em_manifolds[m][:2],
+                   filename='{}/eigenmap{}_cryo-em_x-theta_noisy_2d.png'.format(image_dir, m))
 
-  # # diffusion maps
-  # plot_eigenmap(rect3d_data_gt[:,0], rect3d_phi, [1, 2, 3],
-  #               filename='{}/eigenmap{}_rectangle3d_2d.png'.format(image_dir, m))
-  # plot_eigenmap(torus_data_gt[:,0], torus_phi, [1, 2, 3],
-  #               filename='{}/eigenmap{}_torus_2d.png'.format(image_dir, m))
-  # plot_eigenmap(cryo_em_raw_data[:,0], cryo_em_phi, [1, 2, 3],
-  #               filename='{}/eigenmap{}_cryo-em_x-theta_noisy_2d.png'.format(image_dir, m))
+  # diffusion maps
+  plot_eigenmap(rect3d_data_gt[:,0], rect3d_phi, [1, 2, 3],
+                filename='{}/eigenmap{}_rectangle3d_2d.png'.format(image_dir, m))
+  plot_eigenmap(torus_data_gt[:,0], torus_phi, [1, 2, 3],
+                filename='{}/eigenmap{}_torus_2d.png'.format(image_dir, m))
+  plot_eigenmap(cryo_em_raw_data[:,0], cryo_em_phi, [1, 2, 3],
+                filename='{}/eigenmap{}_cryo-em_x-theta_noisy_2d.png'.format(image_dir, m))
 
-  # # linear ICA
-  # transformer = FastICA(n_components=3, random_state=0)
-  # rect3d_fastICA = transformer.fit_transform(rect3d_data)
-  # plot_fast_ica(rect3d_fastICA, rect3d_data_gt[:,0], filename='{}/fastICA_rect3d.png'.format(image_dir, m))
-  # torus_fastICA = transformer.fit_transform(torus_data)
-  # plot_fast_ica(torus_fastICA, torus_data_gt[:,0], filename='{}/fastICA_torus.png'.format(image_dir, m))
-  # cryo_em_fastICA = transformer.fit_transform(cryo_em_data)
-  # plot_fast_ica(cryo_em_fastICA, cryo_em_raw_data[:,0], filename='{}/fastICA_cryo_em.png'.format(image_dir, m))
+  # linear ICA
+  transformer = FastICA(n_components=3, random_state=0)
+  rect3d_fastICA = transformer.fit_transform(rect3d_data)
+  plot_fast_ica(rect3d_fastICA, rect3d_data_gt[:,0], filename='{}/fastICA_rect3d.png'.format(image_dir, m))
+  torus_fastICA = transformer.fit_transform(torus_data)
+  plot_fast_ica(torus_fastICA, torus_data_gt[:,0], filename='{}/fastICA_torus.png'.format(image_dir, m))
+  cryo_em_fastICA = transformer.fit_transform(cryo_em_data)
+  plot_fast_ica(cryo_em_fastICA, cryo_em_raw_data[:,0], filename='{}/fastICA_cryo_em.png'.format(image_dir, m))
 
   # figure 7
   print('Generating Figure 7...', flush=True)
@@ -178,7 +178,7 @@ def main():
     plot_eigenvectors(cube_data, cube_dimensions, vecs[:5],
                       full=False,
                       labels=[int(j) for j in cube_manifolds[m]],
-                      filename='{}/{}'.format(image_dir, 'manifold{}_cube.png'.format(m)),
+                      filename='{}/{}'.format(image_dir, 'manifold{}_cube_round1.png'.format(m)),
                       offset_scale=0)
 
   # second factorization
@@ -195,10 +195,11 @@ def main():
       cube_independent_vecs.append(vecs)
 
   for m,vecs in enumerate(cube_independent_vecs):
-      plot_eigenvectors(cube_data, cube_dimensions, vecs,
+      plot_eigenvectors(cube_data, cube_dimensions, vecs[:5],
                         full=False,
                         labels=[int(j) for j in cube_manifolds[m]],
-                        filename='{}/{}'.format(image_dir, 'manifold{}_cube_round2.png'.format(m)))
+                        filename='{}/{}'.format(image_dir, 'manifold{}_cube_round2.png'.format(m)),
+                        offset_scale=0)
   
 
 
