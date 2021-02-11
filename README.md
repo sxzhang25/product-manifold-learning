@@ -85,7 +85,11 @@ The format of parameters is:
 To reproduce the figures in the paper, first make sure that the datasets are generated:
 
 ```
-python generate_data.py params/params_rectangle3d.json params/params_torus.json params/params_cryo-em_x-theta_noisy.json
+python generate_data.py \
+  params/params_rectangle3d.json \
+  params/params_torus.json \
+  params/params_cryo-em_x-theta_noisy.json \
+  params/params_cube.json
 ```
 
 Then run the script `./reproduce_results.sh`. 
@@ -99,6 +103,8 @@ python factorize.py --data data/rectangle3d_info.pkl --configs configs/configs_r
 python factorize.py --data data/torus_info.pkl --configs configs/configs_torus.json --outdir results/torus
 
 python factorize.py --data data/cryo-em_x-theta_noisy_info.pkl --configs configs/configs_cryo-em_x-theta_noisy.json --outdir results/cryo-em_x-theta_noisy
+
+python factorize.py --data data/cube_info.pkl --configs configs/configs_cube.json --outdir results/cube
 ```
 
 And then run the following:
