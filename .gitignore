@@ -14,5 +14,6 @@
 !/plots.py
 !/reproduce_figures.py
 !/generate_data.py
+!/factorize.py
 !/algorithm.py
 !/figures.py
