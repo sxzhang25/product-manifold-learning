@@ -7,8 +7,18 @@ import scipy.ndimage as ndimage
 
 from utils import *
 
-def factorize(data, sigma, n_eigenvectors, n_factors, eig_crit, sim_crit,
-                  uniform=True, K=0, seed=255, exclude_eigs=None, verbose=False):
+def factorize(
+  data, 
+  sigma, 
+  n_eigenvectors, 
+  n_factors, 
+  eig_crit, 
+  sim_crit,
+  uniform=True, 
+  K=0, 
+  seed=255, 
+  exclude_eigs=None, 
+  verbose=False):
   '''
   an algorithm to factorize a product manifold
 
