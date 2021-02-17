@@ -8,6 +8,7 @@ Before running this project, make sure to `pip install` the following packages:
 * `scipy`
 * `scikit-learn`
 * `numpy`
+* `matplotlib`
 
 This project was developed using Python 3.7.0.
 
