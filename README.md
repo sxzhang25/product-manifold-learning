@@ -82,7 +82,12 @@ The format of parameters is:
 
 ## Reproducing figures
 
-To reproduce the figures in the paper, first make sure that the datasets are generated:
+To reproduce the figures in the paper, simply run the script `./reproduce_results.sh`. 
+
+
+Alternatively, you can perform the following steps.
+
+First, generate the data:
 
 ```
 python generate_data.py \
@@ -92,10 +97,7 @@ python generate_data.py \
   params/params_cube.json
 ```
 
-Then run the script `./reproduce_results.sh`. 
-
-
-Alternatively, you can run the experiments:
+Then, run the experiments:
 
 ```
 python factorize.py --data data/rectangle3d_info.pkl --configs configs/configs_rectangle3d.json --outdir results/rectangle3d
