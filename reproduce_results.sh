@@ -18,4 +18,10 @@ python factorize.py \
   --outdir results/cryo-em_x-theta_noisy \
   --generate_plots
 
+python factorize.py \
+  --data data/cube_info.pkl \
+  --configs configs/configs_cube.json \
+  --outdir results/cube \
+  --generate_plots
+
 python reproduce_figures.py
