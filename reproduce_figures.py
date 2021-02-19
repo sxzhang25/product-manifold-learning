@@ -146,11 +146,11 @@ def main():
 
   # diffusion maps
   plot_eigenmap(rect3d_data_gt[:,0], rect3d_phi, [1, 2, 3],
-                filename='{}/eigenmap{}_rectangle3d_2d.png'.format(image_dir, m))
+                filename='{}/diffusionmap{}_rectangle3d_2d.png'.format(image_dir, m))
   plot_eigenmap(torus_data_gt[:,0], torus_phi, [1, 2, 3],
-                filename='{}/eigenmap{}_torus_2d.png'.format(image_dir, m))
+                filename='{}/diffusionmap{}_torus_2d.png'.format(image_dir, m))
   plot_eigenmap(cryo_em_raw_data[:,0], cryo_em_phi, [1, 2, 3],
-                filename='{}/eigenmap{}_cryo-em_x-theta_noisy_2d.png'.format(image_dir, m))
+                filename='{}/diffusionmap{}_cryo-em_x-theta_noisy_2d.png'.format(image_dir, m))
 
   # linear ICA
   transformer = FastICA(n_components=3, random_state=0)
