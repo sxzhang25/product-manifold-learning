@@ -61,6 +61,8 @@ def factorize(
   result['best_matches'] = best_matches
   result['best_sims'] = best_sims
   result['all_sims'] = all_sims
+  if verbose:
+    print("  Time: %2.2f seconds" % (t1-t0))
 
   # part 3: identifying separate factor manifolds by eigenvectors
   if verbose:
