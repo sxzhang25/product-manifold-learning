@@ -1,5 +1,5 @@
 # Product Manifold Learning
-Code for reproducing the results from the paper <b>Product Manifold Learning</b>.
+Code for reproducing the results from the paper <b>Product Manifold Learning</b>, in AISTATS 2021.
 
 ## Dependencies
 Before running this project, make sure to `pip install` the following packages:
