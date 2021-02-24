@@ -68,7 +68,7 @@ def main():
           count += 1
   
   W = calc_W(data, sigma=0.1)
-  phi, Sigma = calc_vars(data, W, sigma=0.1, n_eigenvectors=15, uniform=True)
+  phi, Sigma = calc_vars(data, W, sigma=0.1, n_eigenvectors=15)
 
   fig, axs = plt.subplots(3, 5, figsize=(10,3))
   for r in range(3):
@@ -190,7 +190,7 @@ def main():
   cube_results_two = factorize(cube_info['data'], configs_cube['sigma'], 
                       configs_cube['n_eigenvectors'], configs_cube['n_factors'], 
                       configs_cube['eig_crit'], configs_cube['sim_crit'],
-                      uniform=True, K=configs_cube['K'], seed=configs_cube['seed'], exclude_eigs=cube_manifolds[1], verbose=False)
+                      K=configs_cube['K'], seed=configs_cube['seed'], exclude_eigs=cube_manifolds[1], verbose=False)
 
   cube_manifolds = cube_results_two['manifolds']
   cube_phi = cube_results_two['phi']
