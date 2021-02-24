@@ -190,7 +190,7 @@ def main():
   cube_results_two = factorize(cube_info['data'], configs_cube['sigma'], 
                       configs_cube['n_eigenvectors'], configs_cube['n_factors'], 
                       configs_cube['eig_crit'], configs_cube['sim_crit'],
-                      K=configs_cube['K'], seed=configs_cube['seed'], exclude_eigs=cube_manifolds[1], verbose=False)
+                      K=configs_cube['K'], seed=configs_cube['seed'], exclude_eigs=cube_manifolds[0], verbose=True)
 
   cube_manifolds = cube_results_two['manifolds']
   cube_phi = cube_results_two['phi']
