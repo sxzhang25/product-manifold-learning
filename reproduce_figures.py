@@ -6,10 +6,15 @@ import os
 import json
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import FastICA
+
+matplotlib.use('agg')
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 from plots import *
 from utils import *

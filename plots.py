@@ -2,7 +2,6 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('agg')
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -10,6 +9,10 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 from itertools import combinations
 from scipy.linalg import block_diag
+
+matplotlib.use('agg')
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 from utils import *
 
