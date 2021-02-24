@@ -72,12 +72,10 @@ def factorize(
   if verbose:
     print("  Time: %2.2f seconds" % (t1-t0))
 
-  print("\nManifolds...")
   manifolds = []
   for m in range(n_factors):
     manifold = labels[0][np.where(labels[1]==m)[0]]
     manifolds.append(manifold)
-    print("Manifold #{}".format(m + 1), manifold)
 
   # make sure manifold with first nontrivial eigenvector comes first in list
   for idx,m in enumerate(manifolds):
@@ -85,5 +83,9 @@ def factorize(
       m1 = manifolds.pop(idx)
       manifolds.insert(0, m1)
   result['manifolds'] = manifolds
+
+  print("\nManifolds...")
+  for i,m in enumerate(manifolds):
+    print("Manifold #{}".format(i + 1), m)
 
   return result
