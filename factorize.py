@@ -179,12 +179,8 @@ def main():
     image_data_ = preprocess_cryo_em_data(image_data)
     info['data'] = image_data_
 
-  if datatype == 'cryo-em':
-    result = factorize(info['data'], sigma, n_eigenvectors, n_factors, eig_crit, sim_crit,
-                         uniform=False, K=K, seed=seed, verbose=True)
-  else:
-    result = factorize(info['data'], sigma, n_eigenvectors, n_factors, eig_crit, sim_crit,
-                         uniform=True, K=K, seed=seed, verbose=True)
+  result = factorize(info['data'], sigma, n_eigenvectors, n_factors, eig_crit, sim_crit, 
+                      K=K, seed=seed, verbose=True)
 
   # create output directory
   if not os.path.exists(arg['outdir']):

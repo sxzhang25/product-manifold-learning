@@ -14,7 +14,6 @@ def factorize(
   n_factors, 
   eig_crit, 
   sim_crit,
-  uniform=True, 
   K=0, 
   seed=255, 
   exclude_eigs=None, 
@@ -29,7 +28,6 @@ def factorize(
   n_factors: the number of factors
   eig_crit: the threshold for the eigenvalue criterion
   sim_crit: the threshold for the similarity criterion
-  uniform: set to True if the data was sampled uniformly
   K: the voting threshold
   '''
   result = {}
@@ -41,8 +39,7 @@ def factorize(
     print("\nComputing eigenvectors...")
   t0 = time.perf_counter()
   W = calc_W(data, sigma)
-  phi, Sigma = calc_vars(data, W, sigma,
-                         n_eigenvectors=n_eigenvectors, uniform=uniform)
+  phi, Sigma = calc_vars(data, W, sigma, n_eigenvectors=n_eigenvectors)
   t1 = time.perf_counter()
   if verbose:
     print("  Time: %2.2f seconds" % (t1-t0))
@@ -81,6 +78,12 @@ def factorize(
     manifold = labels[0][np.where(labels[1]==m)[0]]
     manifolds.append(manifold)
     print("Manifold #{}".format(m + 1), manifold)
+
+  # make sure manifold with first nontrivial eigenvector comes first in list
+  for idx,m in enumerate(manifolds):
+    if 1 in m:
+      m1 = manifolds.pop(idx)
+      manifolds.insert(0, m1)
   result['manifolds'] = manifolds
 
   return result

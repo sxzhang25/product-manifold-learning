@@ -1,1 +1,1 @@
-{"sigma": 10, "n_factors": 2, "n_eigenvectors": 100, "eig_crit": 1.0, "sim_crit": 0.8, "K": 0, "seed": 255, "uniform": false}
+{"sigma": 10, "n_factors": 2, "n_eigenvectors": 100, "eig_crit": 1.0, "sim_crit": 0.8, "K": 0, "seed": 255}
